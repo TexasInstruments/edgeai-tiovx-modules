@@ -20,7 +20,7 @@ clone the repo under '/opt'
 
 This will install,
 
-Shared library at /opt/lib/egeai-tiovx-modules/libedgeai-tiovx-modules.so
-Headers at /opt/include/edgeai-tiovx-modules/include
+- Shared library at /opt/lib/egeai-tiovx-modules/libedgeai-tiovx-modules.so
+- Headers at /opt/include/edgeai-tiovx-modules/include
 
 
