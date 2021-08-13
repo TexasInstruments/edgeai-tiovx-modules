@@ -85,7 +85,7 @@
 #include <float.h>
 #include <math.h>
 
-#define TIOVX_MODULE_DEBUG
+//#define TIOVX_MODULE_DEBUG
 
 #define TIOVX_MODULES_MAX_FILE_PATH_SIZE  (512u)
 #define TIOVX_MODULES_MAX_OBJ_NAME_SIZE   (512u)

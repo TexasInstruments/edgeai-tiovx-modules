@@ -46,7 +46,8 @@ include_directories(${PROJECT_SOURCE_DIR}
                     /usr/include/processor_sdk/tidl_j7/ti_dl/inc
                     /usr/include/processor_sdk/tiovx/include
                     /usr/include/processor_sdk/tiovx/kernels/include
-                    /usr/include/processor_sdk/tiovx/kernels_j7/include
+                    /usr/include/processor_sdk/tiovx/tiovx_dev/kernels_j7/include
+		    /usr/include/processor_sdk/tiovx/kernels_j7/include
                     /usr/include/processor_sdk/tiovx/utils/include
                     /usr/include/processor_sdk/vision_apps
                     /usr/include/processor_sdk/vision_apps/kernels/img_proc/include
