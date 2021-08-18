@@ -140,7 +140,6 @@ static vx_status app_init(AppObj *obj)
         TIOVXDLPreProcModuleObj *dlPreProcObj = &obj->dlPreProcObj;
 
         dlPreProcObj->params.channel_order = 0; //0-NHWC, 1-NCHW
-        dlPreProcObj->params.tensor_bit_depth = sizeof(vx_float32);
 
         dlPreProcObj->params.scale[0] = 1.0; //For R or Y plane
         dlPreProcObj->params.scale[1] = 1.0; //For G or U plane
@@ -254,39 +253,37 @@ static vx_status app_verify_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        //status = tiovx_dl_pre_proc_module_release_buffers(&obj->dlPreProcObj);
+        status = tiovx_dl_pre_proc_module_release_buffers(&obj->dlPreProcObj);
     }
 
     return status;
 }
 
-static vx_status writeTensorOutput(char* file_name, vx_tensor out_img);
-
 static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * output_filename = "/opt/vision_apps/test_data/baboon";
+    char * output_filename = "./data/output/dl-pre-proc-output.bin";
 
     vx_image input_o, output_o;
 
     TIOVXDLPreProcModuleObj *dlPreProcObj = &obj->dlPreProcObj;
-    //vx_int32 bufq;
+    vx_int32 bufq;
     uint32_t num_refs;
 
-    //void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
-    //void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
 
-    //vx_uint32 inSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
-    //vx_uint32 outSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+    vx_uint32 inSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+    vx_uint32 outSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
     /* These can be moved to app_init() */
-    //allocate_image_buffers(&dlPreProcObj->input, inAddr, inSizes, sizeof(vx_uint8));
-    //allocate_tensor_buffers(&dlPreProcObj->output, outAddr, outSizes, sizeof(vx_uint8));
+    allocate_image_buffers(&dlPreProcObj->input, inAddr, inSizes);
+    allocate_tensor_buffers(&dlPreProcObj->output, outAddr, outSizes);
 
-    //bufq = 0;
-    //assign_image_buffers(&dlPreProcObj->input, inAddr[bufq], inSizes[bufq], bufq);
-    //assign_tensor_buffers(&dlPreProcObj->output, outAddr[bufq], outSizes[bufq], bufq);
+    bufq = 0;
+    assign_image_buffers(&dlPreProcObj->input, inAddr[bufq], inSizes[bufq], bufq);
+    assign_tensor_buffers(&dlPreProcObj->output, outAddr[bufq], outSizes[bufq], bufq);
 
     APP_PRINTF("Enqueueing input buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&dlPreProcObj->input.image_handle[0], 1);
@@ -306,74 +303,15 @@ static vx_status app_run_graph(AppObj *obj)
     vxGraphParameterDequeueDoneRef(obj->graph, 0, (vx_reference*)&input_o, 1, &num_refs);
     vxGraphParameterDequeueDoneRef(obj->graph, 1, (vx_reference*)&output_o, 1, &num_refs);
 
-    writeTensorOutput(output_filename, dlPreProcObj->output.tensor_handle[0]);
+    writeTensor(output_filename, dlPreProcObj->output.tensor_handle[0]);
 
-    //release_image_buffers(&dlPreProcObj->input, inAddr[bufq], inSizes[bufq], bufq);
-    //release_tensor_buffers(&dlPreProcObj->output, outAddr[bufq], outSizes[bufq], bufq);
+    release_image_buffers(&dlPreProcObj->input, inAddr[bufq], inSizes[bufq], bufq);
+    release_tensor_buffers(&dlPreProcObj->output, outAddr[bufq], outSizes[bufq], bufq);
 
     /* These can move to deinit() */
-    //delete_image_buffers(&dlPreProcObj->input, inAddr, inSizes);
-    //delete_tensor_buffers(&dlPreProcObj->output, outAddr, outSizes);
+    delete_image_buffers(&dlPreProcObj->input, inAddr, inSizes);
+    delete_tensor_buffers(&dlPreProcObj->output, outAddr, outSizes);
 
     return status;
 }
 
-vx_status writeTensorOutput(char* file_name, vx_tensor output)
-{
-    vx_status status = VX_SUCCESS;
-
-    vx_size num_dims;
-    void *data_ptr;
-    vx_map_id map_id;
-
-    vx_size start[APP_MAX_TENSOR_DIMS];
-    vx_size tensor_strides[APP_MAX_TENSOR_DIMS];
-    vx_size tensor_sizes[APP_MAX_TENSOR_DIMS];
-    vx_char new_name[APP_MAX_FILE_PATH];
-
-    vxQueryTensor(output, VX_TENSOR_NUMBER_OF_DIMS, &num_dims, sizeof(vx_size));
-
-    if(num_dims != 3)
-    {
-        printf("Number of dims are != 3 \n");
-        status = VX_FAILURE;
-    }
-
-    if((vx_status)VX_FAILURE == status)
-    {
-        vxQueryTensor(output, VX_TENSOR_DIMS, tensor_sizes, num_dims * sizeof(vx_size));
-
-        start[0] = start[1] = start[2] = 0;
-
-        tensor_strides[0] = 1;
-        tensor_strides[1] = tensor_strides[0];
-        tensor_strides[2] = tensor_strides[1] * tensor_strides[1];
-
-        status = tivxMapTensorPatch(output, num_dims, start, tensor_sizes, &map_id, tensor_strides, &data_ptr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-
-        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.bin", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
-
-        FILE *fp = fopen(new_name, "wb");
-        if(NULL == fp)
-        {
-            printf("Unable to open file %s \n", new_name);
-            status = VX_FAILURE;
-        }
-
-        if(VX_SUCCESS == status)
-        {
-            fwrite(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2], fp);
-
-            tivxUnmapTensorPatch(output, map_id);
-        }
-
-        vxReleaseTensor(&output);
-
-        if(fp)
-        {
-            fclose(fp);
-        }
-    }
-
-    return(status);
-}

@@ -264,7 +264,7 @@ static vx_status app_run_graph(AppObj *obj)
     vxQueryImage(imgMosaicObj->output_image[0], VX_IMAGE_PLANES, &num_planes, sizeof(num_planes));
 
     /* These can be moved to app_init() */
-    allocate_image_buffers(&imgMosaicObj->inputs[0], inAddr, inSizes, sizeof(vx_uint8));
+    allocate_image_buffers(&imgMosaicObj->inputs[0], inAddr, inSizes);
     for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
     {
         allocate_single_image_buffer(imgMosaicObj->output_image[bufq], outAddr[bufq], outSizes[bufq]);

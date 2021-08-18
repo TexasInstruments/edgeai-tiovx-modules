@@ -61,13 +61,16 @@
  */
 
 #include "app_common.h"
-#include "tiovx_color_convert_module.h"
+#include "tiovx_dl_color_blend_module.h"
 
 #define APP_BUFQ_DEPTH   (1)
 #define APP_NUM_CH       (1)
 
-#define IMAGE_WIDTH  (640)
-#define IMAGE_HEIGHT (480)
+#define IMAGE_WIDTH  (1280)
+#define IMAGE_HEIGHT (720)
+
+#define TENSOR_WIDTH  (640)
+#define TENSOR_HEIGHT (320)
 
 typedef struct {
 
@@ -76,7 +79,7 @@ typedef struct {
 
     vx_graph   graph;
 
-    TIOVXColorConvertModuleObj  colorConvertObj;
+    TIOVXDLColorBlendModuleObj  dlColorBlendObj;
 
 } AppObj;
 
@@ -89,7 +92,7 @@ static vx_status app_verify_graph(AppObj *obj);
 static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
-vx_status app_modules_color_convert_test(vx_int32 argc, vx_char* argv[])
+vx_status app_modules_dl_color_blend_test(vx_int32 argc, vx_char* argv[])
 {
     AppObj *obj = &gAppObj;
     vx_status status = VX_SUCCESS;
@@ -129,25 +132,40 @@ static vx_status app_init(AppObj *obj)
     /* Create OpenVx Context */
     obj->context = vxCreateContext();
     status = vxGetStatus((vx_reference) obj->context);
+    if(status == VX_SUCCESS)
+    {
+        tivxHwaLoadKernels(obj->context);
+        tivxImgProcLoadKernels(obj->context);
+    }
 
     if(status == VX_SUCCESS)
     {
-        TIOVXColorConvertModuleObj *colorConvertObj = &obj->colorConvertObj;
+        TIOVXDLColorBlendModuleObj *dlColorBlendObj = &obj->dlColorBlendObj;
 
-        colorConvertObj->num_channels = APP_NUM_CH;
-        colorConvertObj->input.bufq_depth = APP_BUFQ_DEPTH;
-        colorConvertObj->input.color_format = VX_DF_IMAGE_RGB;
+        dlColorBlendObj->num_channels = APP_NUM_CH;
+        dlColorBlendObj->en_out_image_write = 0;
+        dlColorBlendObj->num_outputs = 1;
 
-        colorConvertObj->output.bufq_depth = APP_BUFQ_DEPTH;
-        colorConvertObj->output.color_format = VX_DF_IMAGE_IYUV;
+        dlColorBlendObj->img_input.bufq_depth = APP_BUFQ_DEPTH;
+        dlColorBlendObj->img_input.color_format = VX_DF_IMAGE_NV12;
+        dlColorBlendObj->img_input.width = IMAGE_WIDTH;
+        dlColorBlendObj->img_input.height = IMAGE_HEIGHT;
 
-        colorConvertObj->width = IMAGE_WIDTH;
-        colorConvertObj->height = IMAGE_HEIGHT;
-        colorConvertObj->en_out_image_write = 0;
+        dlColorBlendObj->tensor_input.bufq_depth = APP_BUFQ_DEPTH;
+        dlColorBlendObj->tensor_input.datatype = VX_TYPE_UINT8;
+        dlColorBlendObj->tensor_input.num_dims = 3;
+        dlColorBlendObj->tensor_input.dim_sizes[0] = TENSOR_WIDTH;
+        dlColorBlendObj->tensor_input.dim_sizes[1] = TENSOR_HEIGHT;
+        dlColorBlendObj->tensor_input.dim_sizes[2] = 1;
+
+        dlColorBlendObj->img_outputs[0].bufq_depth = APP_BUFQ_DEPTH;
+        dlColorBlendObj->img_outputs[0].color_format = VX_DF_IMAGE_NV12;
+        dlColorBlendObj->img_outputs[0].width = IMAGE_WIDTH;
+        dlColorBlendObj->img_outputs[0].height = IMAGE_HEIGHT;
 
         /* Initialize modules */
-        status = tiovx_color_convert_module_init(obj->context, colorConvertObj);
-        APP_PRINTF("ColorConvert Init Done! \n");
+        status = tiovx_dl_color_blend_module_init(obj->context, dlColorBlendObj);
+        APP_PRINTF("DLColorBlend Init Done! \n");
     }
 
     return status;
@@ -155,14 +173,18 @@ static vx_status app_init(AppObj *obj)
 
 static void app_deinit(AppObj *obj)
 {
-    tiovx_color_convert_module_deinit(&obj->colorConvertObj);
+    tiovx_dl_color_blend_module_deinit(&obj->dlColorBlendObj);
+
+    tivxImgProcUnLoadKernels(obj->context);
+
+    tivxHwaUnLoadKernels(obj->context);
 
     vxReleaseContext(&obj->context);
 }
 
 static void app_delete_graph(AppObj *obj)
 {
-    tiovx_color_convert_module_delete(&obj->colorConvertObj);
+    tiovx_dl_color_blend_module_delete(&obj->dlColorBlendObj);
 
     vxReleaseGraph(&obj->graph);
 }
@@ -179,27 +201,37 @@ static vx_status app_create_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = tiovx_color_convert_module_create(obj->graph, &obj->colorConvertObj, NULL, TIVX_TARGET_DSP1);
+        status = tiovx_dl_color_blend_module_create(obj->graph, &obj->dlColorBlendObj, NULL, NULL, TIVX_TARGET_DSP1);
     }
 
     graph_parameter_index = 0;
     if((vx_status)VX_SUCCESS == status)
     {
-        status = add_graph_parameter_by_node_index(obj->graph, obj->colorConvertObj.node, 0);
-        obj->colorConvertObj.input.graph_parameter_index = graph_parameter_index;
+        status = add_graph_parameter_by_node_index(obj->graph, obj->dlColorBlendObj.node, 1);
+        obj->dlColorBlendObj.img_input.graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->colorConvertObj.input.image_handle[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->dlColorBlendObj.img_input.image_handle[0];
         graph_parameter_index++;
     }
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = add_graph_parameter_by_node_index(obj->graph, obj->colorConvertObj.node, 1);
-        obj->colorConvertObj.output.graph_parameter_index = graph_parameter_index;
+        status = add_graph_parameter_by_node_index(obj->graph, obj->dlColorBlendObj.node, 2);
+        obj->dlColorBlendObj.tensor_input.graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->colorConvertObj.output.image_handle[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->dlColorBlendObj.tensor_input.tensor_handle[0];
+        graph_parameter_index++;
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = add_graph_parameter_by_node_index(obj->graph, obj->dlColorBlendObj.node, 3);
+        obj->dlColorBlendObj.img_outputs[0].graph_parameter_index = graph_parameter_index;
+        graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->dlColorBlendObj.img_outputs[0].image_handle[0];
         graph_parameter_index++;
     }
 
@@ -224,47 +256,51 @@ static vx_status app_verify_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = tiovx_color_convert_module_release_buffers(&obj->colorConvertObj);
+        status = tiovx_dl_color_blend_module_release_buffers(&obj->dlColorBlendObj);
     }
 
     return status;
 }
 
-static vx_status writeOutput(char* file_name, vx_image out_img);
-
 static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "./data/input/baboon.bmp";
-    char * output_filename = "./data/output/baboon.yuv";
+    char * input_image_filename = "./test_data/input/vehicle.yuv";
+    char * input_tensor_filename = "./test_data/input/vehicle_seg_mask.bin";
+    char * output_filename = "/opt/vision_apps/test_data/vehicle.yuv";
 
     vx_image input_o, output_o;
+    vx_tensor tensor_o;
 
-    TIOVXColorConvertModuleObj *colorConvertObj = &obj->colorConvertObj;
+    TIOVXDLColorBlendModuleObj *dlColorBlendObj = &obj->dlColorBlendObj;
     vx_int32 bufq;
     uint32_t num_refs;
 
-    void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
-    void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    void *inImageAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    void *inTensorAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    void *outImageAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
 
-    vx_uint32 inSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
-    vx_uint32 outSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+    vx_uint32 inImageSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+    vx_uint32 inTensorSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+    vx_uint32 outImageSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
     /* These can be moved to app_init() */
-    allocate_image_buffers(&colorConvertObj->input, inAddr, inSizes);
-    allocate_image_buffers(&colorConvertObj->output, outAddr, outSizes);
+    allocate_image_buffers(&dlColorBlendObj->img_input, inImageAddr, inImageSizes);
+    allocate_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr, inTensorSizes);
+    allocate_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr, outImageSizes);
 
     bufq = 0;
-    assign_image_buffers(&colorConvertObj->input, inAddr[bufq], inSizes[bufq], bufq);
-    assign_image_buffers(&colorConvertObj->output, outAddr[bufq], outSizes[bufq], bufq);
+    assign_image_buffers(&dlColorBlendObj->img_input, inImageAddr[bufq], inImageSizes[bufq], bufq);
+    assign_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
+    assign_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr[bufq], outImageSizes[bufq], bufq);
 
-    tivx_utils_load_vximage_from_bmpfile (colorConvertObj->input.image_handle[0], input_filename, vx_false_e);
-
-    APP_PRINTF("Enqueueing input buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&colorConvertObj->input.image_handle[0], 1);
-    APP_PRINTF("Enqueueing output buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, 1, (vx_reference*)&colorConvertObj->output.image_handle[0], 1);
+    APP_PRINTF("Enqueueing input image buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.img_input.graph_parameter_index, (vx_reference*)&dlColorBlendObj->img_input.image_handle[0], 1);
+    APP_PRINTF("Enqueueing input tensor buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.tensor_input.graph_parameter_index, (vx_reference*)&dlColorBlendObj->tensor_input.tensor_handle[0], 1);
+    APP_PRINTF("Enqueueing output image buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.img_outputs[0].graph_parameter_index, (vx_reference*)&dlColorBlendObj->img_outputs[0].image_handle[0], 1);
 
     APP_PRINTF("Processing!\n");
     status = vxScheduleGraph(obj->graph);
@@ -276,89 +312,18 @@ static vx_status app_run_graph(AppObj *obj)
       APP_PRINTF("Wait Graph failed: %d!\n", status);
     }
 
-    vxGraphParameterDequeueDoneRef(obj->graph, 0, (vx_reference*)&input_o, 1, &num_refs);
-    vxGraphParameterDequeueDoneRef(obj->graph, 1, (vx_reference*)&output_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.img_input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.tensor_input.graph_parameter_index, (vx_reference*)&tensor_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.img_outputs[0].graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
 
-    writeOutput(output_filename, colorConvertObj->output.image_handle[0]);
-
-    release_image_buffers(&colorConvertObj->input, inAddr[bufq], inSizes[bufq], bufq);
-    release_image_buffers(&colorConvertObj->output, outAddr[bufq], outSizes[bufq], bufq);
+    release_image_buffers(&dlColorBlendObj->img_input, inImageAddr[bufq], inImageSizes[bufq], bufq);
+    release_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
+    release_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr[bufq], outImageSizes[bufq], bufq);
 
     /* These can move to deinit() */
-    delete_image_buffers(&colorConvertObj->input, inAddr, inSizes);
-    delete_image_buffers(&colorConvertObj->output, outAddr, outSizes);
+    delete_image_buffers(&dlColorBlendObj->img_input, inImageAddr, inImageSizes);
+    delete_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr, inTensorSizes);
+    delete_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr, outImageSizes);
 
     return status;
-}
-
-static vx_status writeOutput(char* file_name, vx_image out_img)
-{
-    vx_status status;
-
-    status = vxGetStatus((vx_reference)out_img);
-
-    if((vx_status)VX_SUCCESS == status)
-    {
-        FILE * fp = fopen(file_name,"wb");
-        vx_int32  j;
-
-        if(fp == NULL)
-        {
-            TIOVX_MODULE_ERROR("Unable to open file %s \n", file_name);
-            return (VX_FAILURE);
-        }
-
-        {
-            vx_rectangle_t rect;
-            vx_imagepatch_addressing_t image_addr;
-            vx_map_id map_id;
-            void * data_ptr;
-            vx_uint32  img_width;
-            vx_uint32  img_height;
-            vx_uint32  num_bytes = 0;
-            vx_size    num_planes;
-            vx_uint32  plane;
-            vx_uint32  plane_size;
-
-            vxQueryImage(out_img, VX_IMAGE_WIDTH, &img_width, sizeof(vx_uint32));
-            vxQueryImage(out_img, VX_IMAGE_HEIGHT, &img_height, sizeof(vx_uint32));
-            vxQueryImage(out_img, VX_IMAGE_PLANES, &num_planes, sizeof(vx_size));
-
-            for (plane = 0; plane < num_planes; plane++)
-            {
-                rect.start_x = 0;
-                rect.start_y = 0;
-                rect.end_x = img_width;
-                rect.end_y = img_height;
-                status = vxMapImagePatch(out_img,
-                                        &rect,
-                                        plane,
-                                        &map_id,
-                                        &image_addr,
-                                        &data_ptr,
-                                        VX_READ_ONLY,
-                                        VX_MEMORY_TYPE_HOST,
-                                        VX_NOGAP_X);
-
-                num_bytes = 0;
-                for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
-                {
-                    num_bytes += fwrite(data_ptr, 1, (image_addr.dim_x/image_addr.step_x), fp);
-                    data_ptr += image_addr.stride_y;
-                }
-
-                plane_size = (image_addr.dim_y/image_addr.step_y) * (image_addr.dim_x/image_addr.step_x);
-
-                if(num_bytes != plane_size)
-                    APP_ERROR("Error! -> Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
-
-                vxUnmapImagePatch(out_img, map_id);
-            }
-
-        }
-
-        fclose(fp);
-    }
-
-    return(status);
 }

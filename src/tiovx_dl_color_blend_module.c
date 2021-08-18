@@ -325,6 +325,9 @@ vx_status tiovx_dl_color_blend_module_deinit(TIOVXDLColorBlendModuleObj *obj)
 
     vx_int32 buf, out;
 
+    TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing config handle!\n");
+    status = vxReleaseUserDataObject(&obj->config);
+
     for(buf = 0; buf < obj->img_input.bufq_depth; buf++)
     {
         if((vx_status)VX_SUCCESS == status)
@@ -353,7 +356,7 @@ vx_status tiovx_dl_color_blend_module_deinit(TIOVXDLColorBlendModuleObj *obj)
         }
     }
 
-    for(out = 0; out < obj->num_outputs; obj++)
+    for(out = 0; out < obj->num_outputs; out++)
     {
         for(buf = 0; buf < obj->img_outputs[out].bufq_depth; buf++)
         {
@@ -379,12 +382,12 @@ vx_status tiovx_dl_color_blend_module_deinit(TIOVXDLColorBlendModuleObj *obj)
 
         if((vx_status)VX_SUCCESS == status)
         {
-            TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing scaler output file prefix array!\n");
+            TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing color blend output file prefix array!\n");
             status = vxReleaseArray(&obj->file_prefix);
         }
         if((vx_status)VX_SUCCESS == status)
         {
-            TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing scaler output write command object!\n");
+            TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing color blend output write command object!\n");
             status = vxReleaseUserDataObject(&obj->write_cmd);
         }
     }

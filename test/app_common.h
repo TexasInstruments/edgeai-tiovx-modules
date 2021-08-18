@@ -115,6 +115,8 @@
 #define APP_PRINTF(f_, ...)
 #endif
 
+#define APP_ERROR(f_, ...) printf((f_), ##__VA_ARGS__)
+
 #define ALIGN_STRIDE64(width) ((((width) + 32)/64)*64)
 
 vx_status add_graph_parameter_by_node_index(vx_graph graph, vx_node node, vx_uint32 node_parameter_index);
@@ -124,14 +126,16 @@ vx_status delete_single_image_buffer(vx_image image, void *virtAddr[], vx_uint32
 vx_status assign_single_image_buffer(vx_image image, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_planes);
 vx_status release_single_image_buffer(vx_image image, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_planes);
 
-vx_status allocate_image_buffers(ImgObj *imgObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES], vx_int32 bit_depth);
+vx_status allocate_image_buffers(ImgObj *imgObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
 vx_status delete_image_buffers(ImgObj *imgObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
 vx_status assign_image_buffers(ImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 vx_status release_image_buffers(ImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 
-vx_status allocate_tensor_buffers(TensorObj *tensorObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES], vx_int32 bit_depth);
+vx_status allocate_tensor_buffers(TensorObj *tensorObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
 vx_status delete_tensor_buffers(TensorObj *tensorObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
 vx_status assign_tensor_buffers(TensorObj *tensorObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 vx_status release_tensor_buffers(TensorObj *tensorObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
+
+vx_status writeTensor(char* file_name, vx_tensor tensor_o);
 
 #endif
