@@ -36,8 +36,6 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${PROJECT_SOURCE_DIR}/..
                     ${PROJECT_SOURCE_DIR}/../include
                     /usr/local/include
-                    /usr/include/glib-2.0/
-                    /usr/lib/aarch64-linux-gnu/glib-2.0/include
                     /usr/include/processor_sdk/vision_apps/apps/basic_demos/app_rtos/common
                     /usr/include/processor_sdk/vision_apps/apps/basic_demos/app_rtos/rtos_linux
                     /usr/include/processor_sdk/vision_apps/apps/basic_demos/app_rtos/rtos_linux/mpu1
@@ -46,8 +44,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     /usr/include/processor_sdk/tidl_j7/ti_dl/inc
                     /usr/include/processor_sdk/tiovx/include
                     /usr/include/processor_sdk/tiovx/kernels/include
-                    /usr/include/processor_sdk/tiovx/tiovx_dev/kernels_j7/include
-		    /usr/include/processor_sdk/tiovx/kernels_j7/include
+                    /usr/include/processor_sdk/tiovx/kernels_j7/include
                     /usr/include/processor_sdk/tiovx/utils/include
                     /usr/include/processor_sdk/vision_apps
                     /usr/include/processor_sdk/vision_apps/kernels/img_proc/include
@@ -55,7 +52,6 @@ include_directories(${PROJECT_SOURCE_DIR}
                     )
 
 set(SYSTEM_LINK_LIBS
-    glib-2.0
     tivision_apps
     )
 

@@ -278,9 +278,9 @@ static vx_status app_run_graph(AppObj *obj)
     vx_uint32 out2Sizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
     /* These can be moved to app_init() */
-    allocate_image_buffers(&scalerObj->input, inAddr, inSizes, sizeof(vx_uint8));
-    allocate_image_buffers(&scalerObj->output[0], out1Addr, out1Sizes, sizeof(vx_uint8));
-    allocate_image_buffers(&scalerObj->output[1], out2Addr, out2Sizes, sizeof(vx_uint8));
+    allocate_image_buffers(&scalerObj->input, inAddr, inSizes);
+    allocate_image_buffers(&scalerObj->output[0], out1Addr, out1Sizes);
+    allocate_image_buffers(&scalerObj->output[1], out2Addr, out2Sizes);
 
     bufq = 0;
     assign_image_buffers(&scalerObj->input, inAddr[bufq], inSizes[bufq], bufq);

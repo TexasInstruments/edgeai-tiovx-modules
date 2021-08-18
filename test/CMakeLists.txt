@@ -11,6 +11,7 @@ set(EDGEAI_TIOVX_MODULES_TEST
     app_tiovx_multi_scaler_module_test.c
     app_tiovx_img_mosaic_module_test.c
     app_tiovx_dl_pre_proc_module_test.c
+    app_tiovx_dl_color_blend_module_test.c
     app_common.c
     main.c)
 

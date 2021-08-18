@@ -101,6 +101,7 @@ int main(int argc, char *argv[])
 
     if(status==0)
     {
+        printf("Running multi-scaler module test\n");
         int app_modules_scaler_test(int argc, char* argv[]);
 
         status = app_modules_scaler_test(argc, argv);
@@ -108,6 +109,7 @@ int main(int argc, char *argv[])
 
     if(status==0)
     {
+        printf("Running color convert module test\n");
         int app_modules_color_convert_test(int argc, char* argv[]);
 
         status = app_modules_color_convert_test(argc, argv);
@@ -115,6 +117,7 @@ int main(int argc, char *argv[])
 
     if(status==0)
     {
+        printf("Running image mosaic module test\n");
         int app_modules_img_mosaic_test(int argc, char* argv[]);
 
         status = app_modules_img_mosaic_test(argc, argv);
@@ -122,10 +125,21 @@ int main(int argc, char *argv[])
 
     if(status==0)
     {
+        printf("Running DL pre-proc module test\n");
         int app_modules_dl_pre_proc_test(int argc, char* argv[]);
 
         status = app_modules_dl_pre_proc_test(argc, argv);
     }
+
+    if(status==0)
+    {
+        printf("Running DL color-blend module test\n");
+        int app_modules_dl_color_blend_test(int argc, char* argv[]);
+
+        status = app_modules_dl_color_blend_test(argc, argv);
+    }
+
+    printf("All tests complete!\n");
 
     appDeInit();
 
