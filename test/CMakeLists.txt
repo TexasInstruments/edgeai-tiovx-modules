@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.10.0)
 
 set(PROJ_NAME edgeai-tiovx-modules-test)
 
@@ -12,6 +12,7 @@ set(EDGEAI_TIOVX_MODULES_TEST
     app_tiovx_img_mosaic_module_test.c
     app_tiovx_dl_pre_proc_module_test.c
     app_tiovx_dl_color_blend_module_test.c
+    app_tiovx_dl_draw_box_module_test.c
     app_common.c
     main.c)
 
