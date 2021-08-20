@@ -704,6 +704,30 @@ static vx_uint32 get_tensor_bitdepth(vx_enum tensor_type)
     return (tensor_bitdepth);
 }
 
+static vx_uint32 get_bit_depth(vx_enum data_type)
+{
+    vx_uint32 size = 0;
+
+    if((data_type == VX_TYPE_UINT8) || (data_type == VX_TYPE_INT8))
+    {
+        size = sizeof(vx_uint8);
+    }
+    else if((data_type == VX_TYPE_UINT16) || (data_type == VX_TYPE_INT16))
+    {
+        size = sizeof(vx_uint16);
+    }
+    else if((data_type == VX_TYPE_UINT32) || (data_type == VX_TYPE_INT32))
+    {
+        size = sizeof(vx_uint32);
+    }
+    else if(data_type == VX_TYPE_FLOAT32)
+    {
+        size = sizeof(vx_float32);
+    }
+
+    return size;
+}
+
 vx_status writeTensor(char* file_name, vx_tensor tensor_o)
 {
     vx_status status = VX_SUCCESS;
@@ -716,28 +740,36 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
     vx_size tensor_strides[APP_MAX_TENSOR_DIMS];
     vx_size tensor_sizes[APP_MAX_TENSOR_DIMS];
     vx_char new_name[APP_MAX_FILE_PATH];
+    vx_enum data_type;
 
     vxQueryTensor(tensor_o, VX_TENSOR_NUMBER_OF_DIMS, &num_dims, sizeof(vx_size));
-
     if(num_dims != 3)
     {
         printf("Number of dims are != 3 \n");
         status = VX_FAILURE;
     }
 
-    if((vx_status)VX_FAILURE == status)
+    vxQueryTensor(tensor_o, VX_TENSOR_DATA_TYPE, &data_type, sizeof(vx_enum));
+    vx_uint32 bit_depth = get_bit_depth(data_type);
+    if(bit_depth == 0)
+    {
+        printf("Incorrect data_type/bit-depth!\n \n");
+        status = VX_FAILURE;
+    }
+
+    if((vx_status)VX_SUCCESS == status)
     {
         vxQueryTensor(tensor_o, VX_TENSOR_DIMS, tensor_sizes, num_dims * sizeof(vx_size));
 
         start[0] = start[1] = start[2] = 0;
 
-        tensor_strides[0] = 1;
-        tensor_strides[1] = tensor_strides[0];
-        tensor_strides[2] = tensor_strides[1] * tensor_strides[1];
+        tensor_strides[0] = bit_depth;
+        tensor_strides[1] = tensor_sizes[0] * tensor_strides[0];
+        tensor_strides[2] = tensor_sizes[1] * tensor_strides[1];
 
         status = tivxMapTensorPatch(tensor_o, num_dims, start, tensor_sizes, &map_id, tensor_strides, &data_ptr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
 
-        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.bin", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
+        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.bgr", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
 
         FILE *fp = fopen(new_name, "wb");
         if(NULL == fp)
@@ -748,12 +780,10 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
 
         if(VX_SUCCESS == status)
         {
-            fwrite(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2], fp);
+            fwrite(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth, fp);
 
             tivxUnmapTensorPatch(tensor_o, map_id);
         }
-
-        vxReleaseTensor(&tensor_o);
 
         if(fp)
         {

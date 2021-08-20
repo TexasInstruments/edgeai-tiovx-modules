@@ -66,8 +66,8 @@
 #define APP_BUFQ_DEPTH   (1)
 #define APP_NUM_CH       (1)
 
-#define IMAGE_WIDTH  (224)
-#define IMAGE_HEIGHT (224)
+#define IMAGE_WIDTH      (640)
+#define IMAGE_HEIGHT     (480)
 
 typedef struct {
 
@@ -139,35 +139,37 @@ static vx_status app_init(AppObj *obj)
     {
         TIOVXDLPreProcModuleObj *dlPreProcObj = &obj->dlPreProcObj;
 
-        dlPreProcObj->params.channel_order = 0; //0-NHWC, 1-NCHW
+        dlPreProcObj->params.channel_order = TIVX_DL_PRE_PROC_CHANNEL_ORDER_NCHW;
+        dlPreProcObj->params.tensor_format = TIVX_DL_PRE_PROC_TENSOR_FORMAT_RGB;
 
         dlPreProcObj->params.scale[0] = 1.0; //For R or Y plane
         dlPreProcObj->params.scale[1] = 1.0; //For G or U plane
         dlPreProcObj->params.scale[2] = 1.0; //For B or V plane
 
-        dlPreProcObj->params.mean[0] = 128.0; //For R or Y plane
-        dlPreProcObj->params.mean[1] = 128.0; //For G or U plane
-        dlPreProcObj->params.mean[2] = 128.0; //For B or V plane
+        dlPreProcObj->params.mean[0] = 0.0; //For R or Y plane
+        dlPreProcObj->params.mean[1] = 0.0; //For G or U plane
+        dlPreProcObj->params.mean[2] = 0.0; //For B or V plane
 
-        dlPreProcObj->params.crop[0] = 10; //Top
-        dlPreProcObj->params.crop[1] = 10; //Bottom
-        dlPreProcObj->params.crop[2] = 10; //Left
-        dlPreProcObj->params.crop[3] = 10; //Right
+        /* Crop is not supported in 1.0 release */
+        dlPreProcObj->params.crop[0] = 0; //Top
+        dlPreProcObj->params.crop[1] = 0; //Bottom
+        dlPreProcObj->params.crop[2] = 0; //Left
+        dlPreProcObj->params.crop[3] = 0; //Right
 
         dlPreProcObj->num_channels = APP_NUM_CH;
         dlPreProcObj->input.bufq_depth = APP_BUFQ_DEPTH;
-        dlPreProcObj->input.color_format = VX_DF_IMAGE_NV12;
+        dlPreProcObj->input.color_format = VX_DF_IMAGE_RGB;
         dlPreProcObj->input.width = IMAGE_WIDTH;
         dlPreProcObj->input.height = IMAGE_HEIGHT;
 
-        dlPreProcObj->en_out_tensor_write = 0;
-
         dlPreProcObj->output.bufq_depth = APP_BUFQ_DEPTH;
-        dlPreProcObj->output.datatype = VX_TYPE_FLOAT32;
+        dlPreProcObj->output.datatype = VX_TYPE_UINT8;
         dlPreProcObj->output.num_dims = 3;
+        /* This can be updated based on NCHW or NHWC */
         dlPreProcObj->output.dim_sizes[0] = IMAGE_WIDTH;
         dlPreProcObj->output.dim_sizes[1] = IMAGE_HEIGHT;
         dlPreProcObj->output.dim_sizes[2] = 3;
+
         dlPreProcObj->en_out_tensor_write = 0;
 
         /* Initialize modules */
@@ -263,7 +265,8 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * output_filename = "./data/output/dl-pre-proc-output.bin";
+    char * input_filename = "./data/input/baboon.bmp";
+    char * output_filename = "./data/output/dl-pre-proc-output";
 
     vx_image input_o, output_o;
 
@@ -284,6 +287,8 @@ static vx_status app_run_graph(AppObj *obj)
     bufq = 0;
     assign_image_buffers(&dlPreProcObj->input, inAddr[bufq], inSizes[bufq], bufq);
     assign_tensor_buffers(&dlPreProcObj->output, outAddr[bufq], outSizes[bufq], bufq);
+
+    tivx_utils_load_vximage_from_bmpfile (dlPreProcObj->input.image_handle[0], input_filename, vx_false_e);
 
     APP_PRINTF("Enqueueing input buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&dlPreProcObj->input.image_handle[0], 1);
