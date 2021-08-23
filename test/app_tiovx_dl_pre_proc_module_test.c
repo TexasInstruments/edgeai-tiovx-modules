@@ -139,7 +139,7 @@ static vx_status app_init(AppObj *obj)
     {
         TIOVXDLPreProcModuleObj *dlPreProcObj = &obj->dlPreProcObj;
 
-        dlPreProcObj->params.channel_order = TIVX_DL_PRE_PROC_CHANNEL_ORDER_NCHW;
+        dlPreProcObj->params.channel_order = TIVX_DL_PRE_PROC_CHANNEL_ORDER_NHWC;
         dlPreProcObj->params.tensor_format = TIVX_DL_PRE_PROC_TENSOR_FORMAT_RGB;
 
         dlPreProcObj->params.scale[0] = 1.0; //For R or Y plane
@@ -158,7 +158,7 @@ static vx_status app_init(AppObj *obj)
 
         dlPreProcObj->num_channels = APP_NUM_CH;
         dlPreProcObj->input.bufq_depth = APP_BUFQ_DEPTH;
-        dlPreProcObj->input.color_format = VX_DF_IMAGE_RGB;
+        dlPreProcObj->input.color_format = VX_DF_IMAGE_NV12;
         dlPreProcObj->input.width = IMAGE_WIDTH;
         dlPreProcObj->input.height = IMAGE_HEIGHT;
 
@@ -265,8 +265,8 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "./data/input/baboon.bmp";
-    char * output_filename = "./data/output/dl-pre-proc-output";
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/output/baboon.yuv";
+    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/dl-pre-proc-output";
 
     vx_image input_o, output_o;
 
@@ -288,7 +288,14 @@ static vx_status app_run_graph(AppObj *obj)
     assign_image_buffers(&dlPreProcObj->input, inAddr[bufq], inSizes[bufq], bufq);
     assign_tensor_buffers(&dlPreProcObj->output, outAddr[bufq], outSizes[bufq], bufq);
 
-    tivx_utils_load_vximage_from_bmpfile (dlPreProcObj->input.image_handle[0], input_filename, vx_false_e);
+    if(obj->dlPreProcObj.input.color_format == VX_DF_IMAGE_NV12)
+    {
+        readImage(input_filename, dlPreProcObj->input.image_handle[0]);
+    }
+    else if (obj->dlPreProcObj.input.color_format == VX_DF_IMAGE_RGB)
+    {
+        tivx_utils_load_vximage_from_bmpfile (dlPreProcObj->input.image_handle[0], input_filename, vx_false_e);
+    }
 
     APP_PRINTF("Enqueueing input buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&dlPreProcObj->input.image_handle[0], 1);

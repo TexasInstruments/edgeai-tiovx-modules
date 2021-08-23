@@ -137,5 +137,7 @@ vx_status assign_tensor_buffers(TensorObj *tensorObj, void *virtAddr[], vx_uint3
 vx_status release_tensor_buffers(TensorObj *tensorObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 
 vx_status writeTensor(char* file_name, vx_tensor tensor_o);
+vx_status readImage(char* file_name, vx_image img);
+vx_status writeImage(char* file_name, vx_image img);
 
 #endif

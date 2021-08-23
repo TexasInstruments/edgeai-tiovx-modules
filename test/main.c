@@ -67,6 +67,11 @@
 #include <TI/tivx.h>
 #include <app_init.h>
 
+#define APP_MODULES_TEST_MULTI_SCALER (1)
+#define APP_MODULES_TEST_COLOR_CONVERT (1)
+#define APP_MODULES_TEST_IMG_MOSAIC (1)
+#define APP_MODULES_TEST_PRE_PROC (1)
+#define APP_MODULES_TEST_COLOR_BLEND (1)
 
 int32_t appInit()
 {
@@ -99,6 +104,7 @@ int main(int argc, char *argv[])
 
     status = appInit();
 
+#if (APP_MODULES_TEST_MULTI_SCALER)
     if(status==0)
     {
         printf("Running multi-scaler module test\n");
@@ -106,7 +112,9 @@ int main(int argc, char *argv[])
 
         status = app_modules_scaler_test(argc, argv);
     }
+#endif
 
+#if (APP_MODULES_TEST_COLOR_CONVERT)
     if(status==0)
     {
         printf("Running color convert module test\n");
@@ -114,7 +122,9 @@ int main(int argc, char *argv[])
 
         status = app_modules_color_convert_test(argc, argv);
     }
+#endif
 
+#if (APP_MODULES_TEST_IMG_MOSAIC)
     if(status==0)
     {
         printf("Running image mosaic module test\n");
@@ -122,7 +132,9 @@ int main(int argc, char *argv[])
 
         status = app_modules_img_mosaic_test(argc, argv);
     }
+#endif
 
+#if (APP_MODULES_TEST_PRE_PROC)
     if(status==0)
     {
         printf("Running DL pre-proc module test\n");
@@ -130,7 +142,9 @@ int main(int argc, char *argv[])
 
         status = app_modules_dl_pre_proc_test(argc, argv);
     }
+#endif
 
+#if (APP_MODULES_TEST_COLOR_BLEND)
     if(status==0)
     {
         printf("Running DL color-blend module test\n");
@@ -138,6 +152,7 @@ int main(int argc, char *argv[])
 
         status = app_modules_dl_color_blend_test(argc, argv);
     }
+#endif
 
     printf("All tests complete!\n");
 
