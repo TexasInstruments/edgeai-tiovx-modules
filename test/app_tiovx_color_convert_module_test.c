@@ -139,7 +139,7 @@ static vx_status app_init(AppObj *obj)
         colorConvertObj->input.color_format = VX_DF_IMAGE_RGB;
 
         colorConvertObj->output.bufq_depth = APP_BUFQ_DEPTH;
-        colorConvertObj->output.color_format = VX_DF_IMAGE_IYUV;
+        colorConvertObj->output.color_format = VX_DF_IMAGE_NV12;
 
         colorConvertObj->width = IMAGE_WIDTH;
         colorConvertObj->height = IMAGE_HEIGHT;
@@ -236,8 +236,8 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "./data/input/baboon.bmp";
-    char * output_filename = "./data/output/baboon.yuv";
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/baboon.bmp";
+    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/baboon.yuv";
 
     vx_image input_o, output_o;
 
@@ -259,7 +259,14 @@ static vx_status app_run_graph(AppObj *obj)
     assign_image_buffers(&colorConvertObj->input, inAddr[bufq], inSizes[bufq], bufq);
     assign_image_buffers(&colorConvertObj->output, outAddr[bufq], outSizes[bufq], bufq);
 
-    tivx_utils_load_vximage_from_bmpfile (colorConvertObj->input.image_handle[0], input_filename, vx_false_e);
+    if(obj->colorConvertObj.input.color_format == VX_DF_IMAGE_NV12)
+    {
+        readImage(input_filename, colorConvertObj->input.image_handle[0]);
+    }
+    else
+    {
+        tivx_utils_load_vximage_from_bmpfile (colorConvertObj->input.image_handle[0], input_filename, vx_false_e);
+    }
 
     APP_PRINTF("Enqueueing input buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&colorConvertObj->input.image_handle[0], 1);
@@ -279,7 +286,7 @@ static vx_status app_run_graph(AppObj *obj)
     vxGraphParameterDequeueDoneRef(obj->graph, 0, (vx_reference*)&input_o, 1, &num_refs);
     vxGraphParameterDequeueDoneRef(obj->graph, 1, (vx_reference*)&output_o, 1, &num_refs);
 
-    writeOutput(output_filename, colorConvertObj->output.image_handle[0]);
+    writeImage(output_filename, colorConvertObj->output.image_handle[0]);
 
     release_image_buffers(&colorConvertObj->input, inAddr[bufq], inSizes[bufq], bufq);
     release_image_buffers(&colorConvertObj->output, outAddr[bufq], outSizes[bufq], bufq);
@@ -291,74 +298,3 @@ static vx_status app_run_graph(AppObj *obj)
     return status;
 }
 
-static vx_status writeOutput(char* file_name, vx_image out_img)
-{
-    vx_status status;
-
-    status = vxGetStatus((vx_reference)out_img);
-
-    if((vx_status)VX_SUCCESS == status)
-    {
-        FILE * fp = fopen(file_name,"wb");
-        vx_int32  j;
-
-        if(fp == NULL)
-        {
-            TIOVX_MODULE_ERROR("Unable to open file %s \n", file_name);
-            return (VX_FAILURE);
-        }
-
-        {
-            vx_rectangle_t rect;
-            vx_imagepatch_addressing_t image_addr;
-            vx_map_id map_id;
-            void * data_ptr;
-            vx_uint32  img_width;
-            vx_uint32  img_height;
-            vx_uint32  num_bytes = 0;
-            vx_size    num_planes;
-            vx_uint32  plane;
-            vx_uint32  plane_size;
-
-            vxQueryImage(out_img, VX_IMAGE_WIDTH, &img_width, sizeof(vx_uint32));
-            vxQueryImage(out_img, VX_IMAGE_HEIGHT, &img_height, sizeof(vx_uint32));
-            vxQueryImage(out_img, VX_IMAGE_PLANES, &num_planes, sizeof(vx_size));
-
-            for (plane = 0; plane < num_planes; plane++)
-            {
-                rect.start_x = 0;
-                rect.start_y = 0;
-                rect.end_x = img_width;
-                rect.end_y = img_height;
-                status = vxMapImagePatch(out_img,
-                                        &rect,
-                                        plane,
-                                        &map_id,
-                                        &image_addr,
-                                        &data_ptr,
-                                        VX_READ_ONLY,
-                                        VX_MEMORY_TYPE_HOST,
-                                        VX_NOGAP_X);
-
-                num_bytes = 0;
-                for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
-                {
-                    num_bytes += fwrite(data_ptr, 1, (image_addr.dim_x/image_addr.step_x), fp);
-                    data_ptr += image_addr.stride_y;
-                }
-
-                plane_size = (image_addr.dim_y/image_addr.step_y) * (image_addr.dim_x/image_addr.step_x);
-
-                if(num_bytes != plane_size)
-                    APP_ERROR("Error! -> Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
-
-                vxUnmapImagePatch(out_img, map_id);
-            }
-
-        }
-
-        fclose(fp);
-    }
-
-    return(status);
-}

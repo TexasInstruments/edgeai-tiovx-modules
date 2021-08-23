@@ -745,7 +745,7 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
     vxQueryTensor(tensor_o, VX_TENSOR_NUMBER_OF_DIMS, &num_dims, sizeof(vx_size));
     if(num_dims != 3)
     {
-        printf("Number of dims are != 3 \n");
+        APP_ERROR("Number of dims are != 3 \n");
         status = VX_FAILURE;
     }
 
@@ -753,7 +753,7 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
     vx_uint32 bit_depth = get_bit_depth(data_type);
     if(bit_depth == 0)
     {
-        printf("Incorrect data_type/bit-depth!\n \n");
+        APP_ERROR("Incorrect data_type/bit-depth!\n \n");
         status = VX_FAILURE;
     }
 
@@ -769,12 +769,12 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
 
         status = tivxMapTensorPatch(tensor_o, num_dims, start, tensor_sizes, &map_id, tensor_strides, &data_ptr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
 
-        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.bgr", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
+        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.rgb", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
 
         FILE *fp = fopen(new_name, "wb");
         if(NULL == fp)
         {
-            printf("Unable to open file %s \n", new_name);
+            APP_ERROR("Unable to open file %s \n", new_name);
             status = VX_FAILURE;
         }
 
@@ -789,6 +789,206 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
         {
             fclose(fp);
         }
+    }
+
+    return(status);
+}
+
+vx_status readImage(char* file_name, vx_image img)
+{
+    vx_status status;
+
+    status = vxGetStatus((vx_reference)img);
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        FILE * fp = fopen(file_name,"rb");
+        vx_int32  j;
+
+        if(fp == NULL)
+        {
+            APP_ERROR("Unable to open file %s \n", file_name);
+            return (VX_FAILURE);
+        }
+
+        {
+            vx_rectangle_t rect;
+            vx_imagepatch_addressing_t image_addr;
+            vx_map_id map_id;
+            void * data_ptr;
+            vx_uint32  img_width;
+            vx_uint32  img_height;
+            vx_uint32  num_bytes = 0;
+            vx_size    num_planes;
+            vx_uint32  plane;
+            vx_uint32  plane_size;
+            vx_df_image img_format;
+
+            vxQueryImage(img, VX_IMAGE_WIDTH, &img_width, sizeof(vx_uint32));
+            vxQueryImage(img, VX_IMAGE_HEIGHT, &img_height, sizeof(vx_uint32));
+            vxQueryImage(img, VX_IMAGE_PLANES, &num_planes, sizeof(vx_size));
+            vxQueryImage(img, VX_IMAGE_FORMAT, &img_format, sizeof(vx_df_image));
+
+            for (plane = 0; plane < num_planes; plane++)
+            {
+                rect.start_x = 0;
+                rect.start_y = 0;
+                rect.end_x = img_width;
+                rect.end_y = img_height;
+                status = vxMapImagePatch(img,
+                                        &rect,
+                                        plane,
+                                        &map_id,
+                                        &image_addr,
+                                        &data_ptr,
+                                        VX_WRITE_ONLY,
+                                        VX_MEMORY_TYPE_HOST,
+                                        VX_NOGAP_X);
+
+                APP_PRINTF("image_addr.dim_x = %d\n ", image_addr.dim_x);
+                APP_PRINTF("image_addr.dim_y = %d\n ", image_addr.dim_y);
+                APP_PRINTF("image_addr.step_x = %d\n ", image_addr.step_x);
+                APP_PRINTF("image_addr.step_y = %d\n ", image_addr.step_y);
+                APP_PRINTF("image_addr.stride_y = %d\n ", image_addr.stride_y);
+                APP_PRINTF("image_addr.stride_x = %d\n ", image_addr.stride_x);
+                APP_PRINTF("\n");
+
+                if((img_format == VX_DF_IMAGE_RGB) || (img_format == VX_DF_IMAGE_RGBX)
+                   || (img_format == VX_DF_IMAGE_NV12) || (img_format == VX_DF_IMAGE_NV21))
+                {
+                    num_bytes = 0;
+                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
+                    {
+                        num_bytes += fread(data_ptr, 1, ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x), fp);
+                        data_ptr += image_addr.stride_y;
+                    }
+
+                    plane_size = (image_addr.dim_y/image_addr.step_y) * ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x);
+
+                    if(num_bytes != plane_size)
+                        APP_ERROR("Plane [%d] bytes read = %d, expected = %d\n", plane, num_bytes, plane_size);
+                }
+                else
+                {
+                    num_bytes = 0;
+                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
+                    {
+                        num_bytes += fread(data_ptr, 1, (image_addr.dim_x/image_addr.step_x), fp);
+                        data_ptr += image_addr.stride_y;
+                    }
+
+                    plane_size = (image_addr.dim_y/image_addr.step_y) * (image_addr.dim_x/image_addr.step_x);
+
+                    if(num_bytes != plane_size)
+                        APP_ERROR("Plane [%d] bytes read = %d, expected = %d\n", plane, num_bytes, plane_size);
+                }
+
+                vxUnmapImagePatch(img, map_id);
+            }
+
+        }
+
+        fclose(fp);
+    }
+
+    return(status);
+}
+
+vx_status writeImage(char* file_name, vx_image img)
+{
+    vx_status status;
+
+    status = vxGetStatus((vx_reference)img);
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        FILE * fp = fopen(file_name,"wb");
+        vx_int32  j;
+
+        if(fp == NULL)
+        {
+            APP_ERROR("Unable to open file %s \n", file_name);
+            return (VX_FAILURE);
+        }
+
+        {
+            vx_rectangle_t rect;
+            vx_imagepatch_addressing_t image_addr;
+            vx_map_id map_id;
+            void * data_ptr;
+            vx_uint32  img_width;
+            vx_uint32  img_height;
+            vx_uint32  num_bytes = 0;
+            vx_size    num_planes;
+            vx_uint32  plane;
+            vx_uint32  plane_size;
+            vx_df_image img_format;
+
+            vxQueryImage(img, VX_IMAGE_WIDTH, &img_width, sizeof(vx_uint32));
+            vxQueryImage(img, VX_IMAGE_HEIGHT, &img_height, sizeof(vx_uint32));
+            vxQueryImage(img, VX_IMAGE_PLANES, &num_planes, sizeof(vx_size));
+            vxQueryImage(img, VX_IMAGE_FORMAT, &img_format, sizeof(vx_df_image));
+
+            for (plane = 0; plane < num_planes; plane++)
+            {
+                rect.start_x = 0;
+                rect.start_y = 0;
+                rect.end_x = img_width;
+                rect.end_y = img_height;
+                status = vxMapImagePatch(img,
+                                        &rect,
+                                        plane,
+                                        &map_id,
+                                        &image_addr,
+                                        &data_ptr,
+                                        VX_READ_ONLY,
+                                        VX_MEMORY_TYPE_HOST,
+                                        VX_NOGAP_X);
+
+                APP_PRINTF("image_addr.dim_x = %d\n ", image_addr.dim_x);
+                APP_PRINTF("image_addr.dim_y = %d\n ", image_addr.dim_y);
+                APP_PRINTF("image_addr.step_x = %d\n ", image_addr.step_x);
+                APP_PRINTF("image_addr.step_y = %d\n ", image_addr.step_y);
+                APP_PRINTF("image_addr.stride_y = %d\n ", image_addr.stride_y);
+                APP_PRINTF("image_addr.stride_x = %d\n ", image_addr.stride_x);
+                APP_PRINTF("\n");
+
+                if((img_format == VX_DF_IMAGE_RGB) || (img_format == VX_DF_IMAGE_RGBX)
+                   || (img_format == VX_DF_IMAGE_NV12) || (img_format == VX_DF_IMAGE_NV21))
+                {
+                    num_bytes = 0;
+                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
+                    {
+                        num_bytes += fwrite(data_ptr, 1, ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x), fp);
+                        data_ptr += image_addr.stride_y;
+                    }
+
+                    plane_size = (image_addr.dim_y/image_addr.step_y) * ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x);
+
+                    if(num_bytes != plane_size)
+                        APP_ERROR("Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
+                }
+                else
+                {
+                    num_bytes = 0;
+                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
+                    {
+                        num_bytes += fwrite(data_ptr, 1, (image_addr.dim_x/image_addr.step_x), fp);
+                        data_ptr += image_addr.stride_y;
+                    }
+
+                    plane_size = (image_addr.dim_y/image_addr.step_y) * (image_addr.dim_x/image_addr.step_x);
+
+                    if(num_bytes != plane_size)
+                        APP_ERROR("Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
+                }
+
+                vxUnmapImagePatch(img, map_id);
+            }
+
+        }
+
+        fclose(fp);
     }
 
     return(status);
