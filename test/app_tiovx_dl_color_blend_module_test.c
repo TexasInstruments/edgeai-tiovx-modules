@@ -144,7 +144,9 @@ static vx_status app_init(AppObj *obj)
 
         dlColorBlendObj->num_channels = APP_NUM_CH;
         dlColorBlendObj->en_out_image_write = 0;
-        dlColorBlendObj->num_outputs = 1;
+
+        dlColorBlendObj->params.num_outputs = 1;
+        dlColorBlendObj->params.use_color_map = 0;
 
         dlColorBlendObj->img_input.bufq_depth = APP_BUFQ_DEPTH;
         dlColorBlendObj->img_input.color_format = VX_DF_IMAGE_NV12;

@@ -769,7 +769,7 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
 
         status = tivxMapTensorPatch(tensor_o, num_dims, start, tensor_sizes, &map_id, tensor_strides, &data_ptr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
 
-        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.rgb", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
+        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.bin", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
 
         FILE *fp = fopen(new_name, "wb");
         if(NULL == fp)

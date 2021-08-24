@@ -139,7 +139,7 @@ static vx_status app_init(AppObj *obj)
         colorConvertObj->input.color_format = VX_DF_IMAGE_RGB;
 
         colorConvertObj->output.bufq_depth = APP_BUFQ_DEPTH;
-        colorConvertObj->output.color_format = VX_DF_IMAGE_NV12;
+        colorConvertObj->output.color_format = VX_DF_IMAGE_IYUV;
 
         colorConvertObj->width = IMAGE_WIDTH;
         colorConvertObj->height = IMAGE_HEIGHT;
@@ -236,8 +236,8 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/baboon.bmp";
-    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/baboon.yuv";
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/baboon_640x480_rgb.bmp";
+    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/baboon_640x480_i420.yuv";
 
     vx_image input_o, output_o;
 

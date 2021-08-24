@@ -192,7 +192,7 @@ static vx_status tiovx_dl_color_blend_module_create_outputs(vx_context context, 
     vx_image out_img;
     vx_int32 buf, out;
 
-    for(out = 0; out < obj->num_outputs; out++)
+    for(out = 0; out < obj->params.num_outputs; out++)
     {
         if(obj->img_outputs[out].bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
         {
@@ -282,12 +282,12 @@ static vx_status tiovx_dl_color_blend_module_create_kernel(vx_context context, T
 {
     vx_status status = VX_SUCCESS;
 
-    obj->kernel = tivxAddKernelDLColorBlend(context, obj->num_outputs);
+    obj->kernel = tivxAddKernelDLColorBlend(context, obj->params.num_outputs);
     status = vxGetStatus((vx_reference)obj->kernel);
 
     if(status != VX_SUCCESS)
     {
-        printf("[DL-COLOR-BLEND-MODULE] Unable to create kernel with %d outputs!\n", obj->num_outputs);
+        printf("[DL-COLOR-BLEND-MODULE] Unable to create kernel with %d outputs!\n", obj->params.num_outputs);
     }
 
     return status;
@@ -356,7 +356,7 @@ vx_status tiovx_dl_color_blend_module_deinit(TIOVXDLColorBlendModuleObj *obj)
         }
     }
 
-    for(out = 0; out < obj->num_outputs; out++)
+    for(out = 0; out < obj->params.num_outputs; out++)
     {
         for(buf = 0; buf < obj->img_outputs[out].bufq_depth; buf++)
         {
@@ -463,7 +463,7 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
         }
     }
 
-    for(out = 0; out < obj->num_outputs; out++)
+    for(out = 0; out < obj->params.num_outputs; out++)
     {
         if(obj->img_outputs[out].arr[0] != NULL)
         {
@@ -475,7 +475,7 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
         }
     }
 
-    obj->node = tivxDLColorBlendNode(graph, obj->kernel, obj->config, img_input, tensor_input, img_output, obj->num_outputs);
+    obj->node = tivxDLColorBlendNode(graph, obj->kernel, obj->config, img_input, tensor_input, img_output, obj->params.num_outputs);
     status = vxGetStatus((vx_reference)obj->node);
 
     if((vx_status)VX_SUCCESS == status)
@@ -488,17 +488,17 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
         replicate[1] = vx_true_e;  /* image input */
         replicate[2] = vx_true_e;  /* tensor input */
 
-        for(out = 0; out < obj->num_outputs; out++)
+        for(out = 0; out < obj->params.num_outputs; out++)
         {
             replicate[3 + out] = vx_true_e;
         }
 
-        vxReplicateNode(graph, obj->node, replicate, 3 + obj->num_outputs);
+        vxReplicateNode(graph, obj->node, replicate, 3 + obj->params.num_outputs);
 
         if(obj->en_out_image_write == 1)
         {
             vx_int32 out;
-            for(out = 0; out < obj->num_outputs; out++)
+            for(out = 0; out < obj->params.num_outputs; out++)
             {
                 if(img_output[out] != NULL)
                 {
@@ -522,7 +522,7 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
     if(tensor_input != NULL)
         vxReleaseTensor(&tensor_input);
 
-    for(out = 0; out < obj->num_outputs; out++)
+    for(out = 0; out < obj->params.num_outputs; out++)
     {
         if(img_output[out] != NULL)
             vxReleaseImage(&img_output[out]);
@@ -636,7 +636,7 @@ vx_status tiovx_dl_color_blend_module_release_buffers(TIOVXDLColorBlendModuleObj
     }
 
     /* Free output handles */
-    for(out = 0; out < obj->num_outputs; out++)
+    for(out = 0; out < obj->params.num_outputs; out++)
     {
         for(bufq = 0; bufq < obj->img_outputs[out].bufq_depth; bufq++)
         {
