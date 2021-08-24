@@ -139,8 +139,8 @@ static vx_status app_init(AppObj *obj)
     {
         TIOVXDLPreProcModuleObj *dlPreProcObj = &obj->dlPreProcObj;
 
-        dlPreProcObj->params.channel_order = TIVX_DL_PRE_PROC_CHANNEL_ORDER_NHWC;
-        dlPreProcObj->params.tensor_format = TIVX_DL_PRE_PROC_TENSOR_FORMAT_RGB;
+        dlPreProcObj->params.channel_order = TIVX_DL_PRE_PROC_CHANNEL_ORDER_NCHW;
+        dlPreProcObj->params.tensor_format = TIVX_DL_PRE_PROC_TENSOR_FORMAT_BGR;
 
         dlPreProcObj->params.scale[0] = 1.0; //For R or Y plane
         dlPreProcObj->params.scale[1] = 1.0; //For G or U plane
@@ -265,7 +265,7 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "/opt/edgeai-tiovx-modules/data/output/baboon.yuv";
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/baboon_640x480_nv12.yuv";
     char * output_filename = "/opt/edgeai-tiovx-modules/data/output/dl-pre-proc-output";
 
     vx_image input_o, output_o;

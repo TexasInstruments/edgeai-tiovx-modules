@@ -144,7 +144,9 @@ static vx_status app_init(AppObj *obj)
 
         dlDrawBoxObj->num_channels = APP_NUM_CH;
         dlDrawBoxObj->en_out_image_write = 0;
-        dlDrawBoxObj->num_outputs = 1;
+
+        dlDrawBoxObj->params.num_outputs = 1;
+        dlDrawBoxObj->params.use_color_map = 0;
 
         dlDrawBoxObj->img_input.bufq_depth = APP_BUFQ_DEPTH;
         dlDrawBoxObj->img_input.color_format = VX_DF_IMAGE_NV12;

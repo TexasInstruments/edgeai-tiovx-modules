@@ -78,7 +78,6 @@ typedef struct {
 
     /* Input parameters */
     vx_int32 num_channels;
-    vx_int32 num_outputs;
     vx_int32 en_out_image_write;
 
     /* These params are needed only for writing intermediate output */
