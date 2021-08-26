@@ -140,6 +140,32 @@ static vx_status tiovx_img_mosaic_module_create_input(vx_context context, TIOVXI
     return status;
 }
 
+static vx_status tiovx_img_mosaic_module_create_background(vx_context context, TIOVXImgMosaicModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+    vx_int32 q;
+
+    for(q = 0; q < obj->out_bufq_depth; q++)
+    {
+        obj->background_image[q] = vxCreateImage(context, obj->out_width, obj->out_height, obj->color_format);
+        status = vxGetStatus((vx_reference)obj->background_image[q]);
+        if(status != VX_SUCCESS)
+        {
+            TIOVX_MODULE_ERROR("[IMG-MOSAIC-MODULE] Unable to create background image of size %d x %d!\n", obj->out_width, obj->out_height);
+            break;
+        }
+        else
+        {
+            vx_char name[VX_MAX_REFERENCE_NAME];
+
+            snprintf(name, VX_MAX_REFERENCE_NAME, "mosaic_node_background_image_%d", q);
+            vxSetReferenceName((vx_reference)obj->background_image[q], name);
+        }
+    }
+
+    return status;
+}
+
 static vx_status tiovx_img_mosaic_module_create_output(vx_context context, TIOVXImgMosaicModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -181,6 +207,12 @@ vx_status tiovx_img_mosaic_module_init(vx_context context, TIOVXImgMosaicModuleO
 
     if(status == VX_SUCCESS)
     {
+        TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Creating background image!\n");
+        tiovx_img_mosaic_module_create_background(context, obj);
+    }
+
+    if(status == VX_SUCCESS)
+    {
         TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Creating output image!\n");
         status = tiovx_img_mosaic_module_create_output(context, obj);
     }
@@ -208,7 +240,7 @@ vx_status tiovx_img_mosaic_module_deinit(TIOVXImgMosaicModuleObj *obj)
         {
             if((vx_status)VX_SUCCESS == status)
             {
-                TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Releasing image handle %d, bufq %d!\n", in, q);
+                TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Releasing input image handle %d, bufq %d!\n", in, q);
                 status = vxReleaseImage(&obj->inputs[in].image_handle[q]);
             }
             if((vx_status)VX_SUCCESS == status)
@@ -225,6 +257,15 @@ vx_status tiovx_img_mosaic_module_deinit(TIOVXImgMosaicModuleObj *obj)
         {
             TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Releasing output image bufq %d!\n", q);
             status = vxReleaseImage(&obj->output_image[q]);
+        }
+    }
+
+    for(q = 0; q < obj->out_bufq_depth; q++)
+    {
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Releasing background image bufq %d!\n", q);
+            status = vxReleaseImage(&obj->background_image[q]);
         }
     }
 
@@ -253,7 +294,7 @@ vx_status tiovx_img_mosaic_module_delete(TIOVXImgMosaicModuleObj *obj)
     return status;
 }
 
-vx_status tiovx_img_mosaic_module_create(vx_graph graph, TIOVXImgMosaicModuleObj *obj, vx_object_array input_arr_user[], const char* target_string)
+vx_status tiovx_img_mosaic_module_create(vx_graph graph, TIOVXImgMosaicModuleObj *obj, vx_image background, vx_object_array input_arr_user[], const char* target_string)
 {
 
     vx_status status = VX_SUCCESS;
@@ -274,11 +315,12 @@ vx_status tiovx_img_mosaic_module_create(vx_graph graph, TIOVXImgMosaicModuleObj
     }
 
     obj->node = tivxImgMosaicNode(graph,
-                                           obj->kernel,
-                                           obj->config,
-                                           obj->output_image[0],
-                                           input_arr,
-                                           obj->num_inputs);
+                                obj->kernel,
+                                obj->config,
+                                obj->output_image[0],
+                                background,
+                                input_arr,
+                                obj->num_inputs);
 
     status = vxGetStatus((vx_reference)obj->node);
 
@@ -384,6 +426,51 @@ vx_status tiovx_img_mosaic_module_release_buffers(TIOVXImgMosaicModuleObj *obj)
                 }
 
                 TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing output, bufq=%d, addr = 0x%016lX, size = %d \n", bufq, (vx_uint64)virtAddr[0], freeSize);
+                tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+
+                for(ctr = 0; ctr < numEntries; ctr++)
+                {
+                    virtAddr[ctr] = NULL;
+                }
+
+                /* Assign NULL handles to the OpenVx objects as it will avoid
+                    doing a tivxMemFree twice, once now and once during release */
+                status = tivxReferenceImportHandle(ref,
+                                                (const void **)virtAddr,
+                                                (const uint32_t *)size,
+                                                numEntries);
+            }
+        }
+    }
+
+    /* Free background handles */
+    for(bufq = 0; bufq < obj->out_bufq_depth; bufq++)
+    {
+        vx_reference ref = (vx_reference)obj->background_image[bufq];
+        status = vxGetStatus((vx_reference)ref);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            /* Export handles to get valid size information. */
+            status = tivxReferenceExportHandle(ref,
+                                                virtAddr,
+                                                size,
+                                                TIOVX_MODULES_MAX_REF_HANDLES,
+                                                &numEntries);
+
+            if((vx_status)VX_SUCCESS == status)
+            {
+                vx_int32 ctr;
+                /* Currently the vx_image buffers are alloated in one shot for multiple planes.
+                    So if we are freeing this buffer then we need to get only the first plane
+                    pointer address but add up the all the sizes to free the entire buffer */
+                vx_uint32 freeSize = 0;
+                for(ctr = 0; ctr < numEntries; ctr++)
+                {
+                    freeSize += size[ctr];
+                }
+
+                TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing background, bufq=%d, addr = 0x%016lX, size = %d \n", bufq, (vx_uint64)virtAddr[0], freeSize);
                 tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
 
                 for(ctr = 0; ctr < numEntries; ctr++)

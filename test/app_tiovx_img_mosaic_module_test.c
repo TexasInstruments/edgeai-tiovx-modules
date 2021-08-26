@@ -196,14 +196,14 @@ static vx_status app_create_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = tiovx_img_mosaic_module_create(obj->graph, &obj->imgMosaicObj, input_arr_user, TIVX_TARGET_VPAC_MSC1);
+        status = tiovx_img_mosaic_module_create(obj->graph, &obj->imgMosaicObj, obj->imgMosaicObj.background_image[0], input_arr_user, TIVX_TARGET_VPAC_MSC1);
     }
 
     graph_parameter_index = 0;
     if((vx_status)VX_SUCCESS == status)
-    {
+    {   /* Output image index is 1 */
         status = add_graph_parameter_by_node_index(obj->graph, obj->imgMosaicObj.node, 1);
-        obj->imgMosaicObj.graph_parameter_index = graph_parameter_index;
+        obj->imgMosaicObj.output_graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->imgMosaicObj.output_image[0];
@@ -211,8 +211,18 @@ static vx_status app_create_graph(AppObj *obj)
     }
 
     if((vx_status)VX_SUCCESS == status)
-    {
+    {   /* Background image index is 2 */
         status = add_graph_parameter_by_node_index(obj->graph, obj->imgMosaicObj.node, 2);
+        obj->imgMosaicObj.background_graph_parameter_index = graph_parameter_index;
+        graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->imgMosaicObj.background_image[0];
+        graph_parameter_index++;
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {   /* Inputs start from image index 3 */
+        status = add_graph_parameter_by_node_index(obj->graph, obj->imgMosaicObj.node, 3);
         obj->imgMosaicObj.inputs[0].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
@@ -253,15 +263,19 @@ static vx_status app_run_graph(AppObj *obj)
 
     TIOVXImgMosaicModuleObj *imgMosaicObj = &obj->imgMosaicObj;
     vx_int32 bufq;
-    vx_size num_planes;
+    vx_size out_num_planes;
+    vx_size back_num_planes;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    void *backAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
 
     vx_uint32 inSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
     vx_uint32 outSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+    vx_uint32 backSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
-    vxQueryImage(imgMosaicObj->output_image[0], VX_IMAGE_PLANES, &num_planes, sizeof(num_planes));
+    vxQueryImage(imgMosaicObj->output_image[0], VX_IMAGE_PLANES, &out_num_planes, sizeof(out_num_planes));
+    vxQueryImage(imgMosaicObj->background_image[0], VX_IMAGE_PLANES, &back_num_planes, sizeof(back_num_planes));
 
     /* These can be moved to app_init() */
     allocate_image_buffers(&imgMosaicObj->inputs[0], inAddr, inSizes);
@@ -269,21 +283,31 @@ static vx_status app_run_graph(AppObj *obj)
     {
         allocate_single_image_buffer(imgMosaicObj->output_image[bufq], outAddr[bufq], outSizes[bufq]);
     }
+    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
+    {
+        allocate_single_image_buffer(imgMosaicObj->background_image[bufq], backAddr[bufq], backSizes[bufq]);
+    }
 
     bufq = 0;
     assign_image_buffers(&imgMosaicObj->inputs[0], inAddr[bufq], inSizes[bufq], bufq);
-    assign_single_image_buffer(imgMosaicObj->output_image[0], outAddr[bufq], outSizes[bufq], num_planes);
+    assign_single_image_buffer(imgMosaicObj->output_image[0], outAddr[bufq], outSizes[bufq], out_num_planes);
+    assign_single_image_buffer(imgMosaicObj->background_image[0], outAddr[bufq], outSizes[bufq], back_num_planes);
 
     //status = vxProcessGraph(obj->graph);
 
     release_image_buffers(&imgMosaicObj->inputs[0], inAddr[bufq], inSizes[bufq], bufq);
-    release_single_image_buffer(imgMosaicObj->output_image[0], outAddr[bufq], outSizes[bufq], num_planes);
+    release_single_image_buffer(imgMosaicObj->output_image[0], outAddr[bufq], outSizes[bufq], out_num_planes);
+    release_single_image_buffer(imgMosaicObj->background_image[0], outAddr[bufq], outSizes[bufq], back_num_planes);
 
     /* These can move to deinit() */
     delete_image_buffers(&imgMosaicObj->inputs[0], inAddr, inSizes);
     for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
     {
         delete_single_image_buffer(imgMosaicObj->output_image[bufq], outAddr[bufq], outSizes[bufq]);
+    }
+    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
+    {
+        delete_single_image_buffer(imgMosaicObj->background_image[bufq], backAddr[bufq], backSizes[bufq]);
     }
 
     return status;
