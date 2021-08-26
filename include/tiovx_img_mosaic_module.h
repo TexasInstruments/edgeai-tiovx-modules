@@ -112,18 +112,28 @@ typedef struct {
 
     /*! Height of mosaic node output image */
     vx_int32 out_height;
+
+    /*! Bufq depth of output image */
     vx_int32 out_bufq_depth;
+
+    /*! Flag to write mosaic output to file */
     vx_int32 write_img_mosaic_output;
 
-    /*! Mosaic node graph parameter index */
-    vx_int32 graph_parameter_index;
+    /*! Mosaic node graph parameter index of output */
+    vx_int32 output_graph_parameter_index;
+
+    /*! Mosaic node graph parameter index of background */
+    vx_int32 background_graph_parameter_index;
+
+    /*! Background image applied to output */
+    vx_image background_image[TIOVX_MODULES_MAX_BUFQ_DEPTH];
 
 } TIOVXImgMosaicModuleObj;
 
 vx_status tiovx_img_mosaic_module_init(vx_context context, TIOVXImgMosaicModuleObj *obj);
 vx_status tiovx_img_mosaic_module_deinit(TIOVXImgMosaicModuleObj *obj);
 vx_status tiovx_img_mosaic_module_delete(TIOVXImgMosaicModuleObj *obj);
-vx_status tiovx_img_mosaic_module_create(vx_graph graph, TIOVXImgMosaicModuleObj *obj, vx_object_array input_arr_user[], const char* target_string);
+vx_status tiovx_img_mosaic_module_create(vx_graph graph, TIOVXImgMosaicModuleObj *obj, vx_image background_image, vx_object_array input_arr_user[], const char* target_string);
 vx_status tiovx_img_mosaic_module_release_buffers(TIOVXImgMosaicModuleObj *obj);
 
 vx_status tiovx_img_mosaic_module_add_write_output_node(vx_graph graph, TIOVXImgMosaicModuleObj *obj);
