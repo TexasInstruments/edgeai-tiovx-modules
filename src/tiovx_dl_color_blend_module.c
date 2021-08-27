@@ -185,50 +185,47 @@ static vx_status tiovx_dl_color_blend_module_create_tensor_input(vx_context cont
     return status;
 }
 
-static vx_status tiovx_dl_color_blend_module_create_outputs(vx_context context, TIOVXDLColorBlendModuleObj *obj)
+static vx_status tiovx_dl_color_blend_module_create_output(vx_context context, TIOVXDLColorBlendModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
     vx_image out_img;
-    vx_int32 buf, out;
+    vx_int32 buf;
 
-    for(out = 0; out < obj->params.num_outputs; out++)
+    if(obj->img_output.bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
     {
-        if(obj->img_outputs[out].bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
-        {
-            TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Output buffer queue depth %d greater than max supported %d!\n", obj->img_outputs[out].bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
-            return VX_FAILURE;
-        }
+        TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Output buffer queue depth %d greater than max supported %d!\n", obj->img_output.bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
+        return VX_FAILURE;
+    }
 
-        for(buf = 0; buf < TIOVX_MODULES_MAX_BUFQ_DEPTH; buf++)
-        {
-            obj->img_outputs[out].arr[buf]  = NULL;
-            obj->img_outputs[out].image_handle[buf]  = NULL;
-        }
+    for(buf = 0; buf < TIOVX_MODULES_MAX_BUFQ_DEPTH; buf++)
+    {
+        obj->img_output.arr[buf]  = NULL;
+        obj->img_output.image_handle[buf]  = NULL;
+    }
 
-        out_img  = vxCreateImage(context, obj->img_input.width, obj->img_input.height, obj->img_input.color_format);
-        status = vxGetStatus((vx_reference)out_img);
+    out_img  = vxCreateImage(context, obj->img_input.width, obj->img_input.height, obj->img_input.color_format);
+    status = vxGetStatus((vx_reference)out_img);
 
-        if(status == VX_SUCCESS)
+    if(status == VX_SUCCESS)
+    {
+        for(buf = 0; buf < obj->img_output.bufq_depth; buf++)
         {
-            for(buf = 0; buf < obj->img_outputs[out].bufq_depth; buf++)
+            obj->img_output.arr[buf]  = vxCreateObjectArray(context, (vx_reference)out_img, obj->num_channels);
+
+            status = vxGetStatus((vx_reference)obj->img_output.arr[buf]);
+            if(status != VX_SUCCESS)
             {
-                obj->img_outputs[out].arr[buf]  = vxCreateObjectArray(context, (vx_reference)out_img, obj->num_channels);
-
-                status = vxGetStatus((vx_reference)obj->img_outputs[out].arr[buf]);
-                if(status != VX_SUCCESS)
-                {
-                    TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Unable to create output array! \n");
-                }
-
-                obj->img_outputs[out].image_handle[buf] = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->img_outputs[out].arr[buf], 0);
+                TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Unable to create output array! \n");
             }
-            vxReleaseImage(&out_img);
+
+            obj->img_output.image_handle[buf] = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->img_output.arr[buf], 0);
         }
-        else
-        {
-            TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Unable to create output image template! \n");
-        }
+        vxReleaseImage(&out_img);
+    }
+    else
+    {
+        TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Unable to create output image template! \n");
     }
 
     if(obj->en_out_image_write == 1)
@@ -278,21 +275,6 @@ static vx_status tiovx_dl_color_blend_module_create_outputs(vx_context context, 
     return status;
 }
 
-static vx_status tiovx_dl_color_blend_module_create_kernel(vx_context context, TIOVXDLColorBlendModuleObj *obj)
-{
-    vx_status status = VX_SUCCESS;
-
-    obj->kernel = tivxAddKernelDLColorBlend(context, obj->params.num_outputs);
-    status = vxGetStatus((vx_reference)obj->kernel);
-
-    if(status != VX_SUCCESS)
-    {
-        printf("[DL-COLOR-BLEND-MODULE] Unable to create kernel with %d outputs!\n", obj->params.num_outputs);
-    }
-
-    return status;
-}
-
 vx_status tiovx_dl_color_blend_module_init(vx_context context, TIOVXDLColorBlendModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -309,11 +291,7 @@ vx_status tiovx_dl_color_blend_module_init(vx_context context, TIOVXDLColorBlend
     }
     if((vx_status)VX_SUCCESS == status)
     {
-        status = tiovx_dl_color_blend_module_create_outputs(context, obj);
-    }
-    if((vx_status)VX_SUCCESS == status)
-    {
-        status = tiovx_dl_color_blend_module_create_kernel(context, obj);
+        status = tiovx_dl_color_blend_module_create_output(context, obj);
     }
 
     return status;
@@ -323,7 +301,7 @@ vx_status tiovx_dl_color_blend_module_deinit(TIOVXDLColorBlendModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    vx_int32 buf, out;
+    vx_int32 buf;
 
     TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing config handle!\n");
     status = vxReleaseUserDataObject(&obj->config);
@@ -356,22 +334,20 @@ vx_status tiovx_dl_color_blend_module_deinit(TIOVXDLColorBlendModuleObj *obj)
         }
     }
 
-    for(out = 0; out < obj->params.num_outputs; out++)
+    for(buf = 0; buf < obj->img_output.bufq_depth; buf++)
     {
-        for(buf = 0; buf < obj->img_outputs[out].bufq_depth; buf++)
+        if((vx_status)VX_SUCCESS == status)
         {
-            if((vx_status)VX_SUCCESS == status)
-            {
-                TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing output image %d handle!\n", out);
-                status = vxReleaseImage(&obj->img_outputs[out].image_handle[buf]);
-            }
-            if((vx_status)VX_SUCCESS == status)
-            {
-                TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing output image arr %d!\n", out);
-                status = vxReleaseObjectArray(&obj->img_outputs[out].arr[buf]);
-            }
+            TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing output image handle!\n");
+            status = vxReleaseImage(&obj->img_output.image_handle[buf]);
+        }
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing output image arr!\n");
+            status = vxReleaseObjectArray(&obj->img_output.arr[buf]);
         }
     }
+
     if(obj->en_out_image_write == 1)
     {
         if((vx_status)VX_SUCCESS == status)
@@ -404,11 +380,6 @@ vx_status tiovx_dl_color_blend_module_delete(TIOVXDLColorBlendModuleObj *obj)
         TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Releasing node reference!\n");
         status = vxReleaseNode(&obj->node);
     }
-    if(obj->kernel != NULL)
-    {
-        TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Removing kernel reference!\n");
-        status = vxRemoveKernel(obj->kernel);
-    }
 
     if(obj->write_node != NULL)
     {
@@ -428,8 +399,7 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
 
     vx_image  img_input;
     vx_tensor tensor_input;
-    vx_image  img_output[TIVX_DL_COLOR_BLEND_MAX_OUTPUTS];
-    vx_int32  out;
+    vx_image  img_output;
 
     if(img_input_arr != NULL)
     {
@@ -463,19 +433,16 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
         }
     }
 
-    for(out = 0; out < obj->params.num_outputs; out++)
+    if(obj->img_output.arr[0] != NULL)
     {
-        if(obj->img_outputs[out].arr[0] != NULL)
-        {
-            img_output[out] = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->img_outputs[out].arr[0], 0);
-        }
-        else
-        {
-            img_output[out] = NULL;
-        }
+        img_output = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->img_output.arr[0], 0);
+    }
+    else
+    {
+        img_output = NULL;
     }
 
-    obj->node = tivxDLColorBlendNode(graph, obj->kernel, obj->config, img_input, tensor_input, img_output, obj->params.num_outputs);
+    obj->node = tivxDLColorBlendNode(graph, obj->config, img_input, tensor_input, img_output);
     status = vxGetStatus((vx_reference)obj->node);
 
     if((vx_status)VX_SUCCESS == status)
@@ -485,28 +452,20 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
         vx_bool replicate[8];
 
         replicate[0] = vx_false_e; /* config */
-        replicate[1] = vx_true_e;  /* image input */
-        replicate[2] = vx_true_e;  /* tensor input */
+        replicate[1] = vx_true_e;  /* input image */
+        replicate[2] = vx_true_e;  /* input tensor */
+        replicate[3] = vx_true_e;  /* output image */
 
-        for(out = 0; out < obj->params.num_outputs; out++)
-        {
-            replicate[3 + out] = vx_true_e;
-        }
-
-        vxReplicateNode(graph, obj->node, replicate, 3 + obj->params.num_outputs);
+        vxReplicateNode(graph, obj->node, replicate, 4);
 
         if(obj->en_out_image_write == 1)
         {
-            vx_int32 out;
-            for(out = 0; out < obj->params.num_outputs; out++)
+            if(img_output != NULL)
             {
-                if(img_output[out] != NULL)
+                status = tiovx_dl_color_blend_module_add_write_output_node(graph, obj);
+                if(status != VX_SUCCESS)
                 {
-                    status = tiovx_dl_color_blend_module_add_write_output_node(graph, obj, out);
-                    if(status != VX_SUCCESS)
-                    {
-                        TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Unable to create write node for output %d!\n", out);
-                    }
+                    TIOVX_MODULE_ERROR("[DL-COLOR-BLEND-MODULE] Unable to create write node for output!\n");
                 }
             }
         }
@@ -522,11 +481,8 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
     if(tensor_input != NULL)
         vxReleaseTensor(&tensor_input);
 
-    for(out = 0; out < obj->params.num_outputs; out++)
-    {
-        if(img_output[out] != NULL)
-            vxReleaseImage(&img_output[out]);
-    }
+    if(img_output != NULL)
+        vxReleaseImage(&img_output);
 
     return status;
 }
@@ -538,7 +494,7 @@ vx_status tiovx_dl_color_blend_module_release_buffers(TIOVXDLColorBlendModuleObj
     void      *virtAddr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     vx_uint32   size[TIOVX_MODULES_MAX_REF_HANDLES];
     vx_uint32   numEntries;
-    vx_int32   out, bufq, ch;
+    vx_int32   bufq, ch;
 
     /* Free image input handles */
     for(bufq = 0; bufq < obj->img_input.bufq_depth; bufq++)
@@ -589,7 +545,7 @@ vx_status tiovx_dl_color_blend_module_release_buffers(TIOVXDLColorBlendModuleObj
         }
     }
 
-    /* Free image input handles */
+    /* Free tensor input handles */
     for(bufq = 0; bufq < obj->tensor_input.bufq_depth; bufq++)
     {
         for(ch = 0; ch < obj->num_channels; ch++)
@@ -636,53 +592,50 @@ vx_status tiovx_dl_color_blend_module_release_buffers(TIOVXDLColorBlendModuleObj
     }
 
     /* Free output handles */
-    for(out = 0; out < obj->params.num_outputs; out++)
+    for(bufq = 0; bufq < obj->img_output.bufq_depth; bufq++)
     {
-        for(bufq = 0; bufq < obj->img_outputs[out].bufq_depth; bufq++)
+        for(ch = 0; ch < obj->num_channels; ch++)
         {
-            for(ch = 0; ch < obj->num_channels; ch++)
+            vx_reference ref = vxGetObjectArrayItem(obj->img_output.arr[bufq], ch);
+            status = vxGetStatus((vx_reference)ref);
+
+            if((vx_status)VX_SUCCESS == status)
             {
-                vx_reference ref = vxGetObjectArrayItem(obj->img_outputs[out].arr[bufq], ch);
-                status = vxGetStatus((vx_reference)ref);
+                /* Export handles to get valid size information. */
+                status = tivxReferenceExportHandle(ref,
+                                                    virtAddr,
+                                                    size,
+                                                    TIOVX_MODULES_MAX_REF_HANDLES,
+                                                    &numEntries);
 
                 if((vx_status)VX_SUCCESS == status)
                 {
-                    /* Export handles to get valid size information. */
-                    status = tivxReferenceExportHandle(ref,
-                                                        virtAddr,
-                                                        size,
-                                                        TIOVX_MODULES_MAX_REF_HANDLES,
-                                                        &numEntries);
-
-                    if((vx_status)VX_SUCCESS == status)
+                    vx_int32 ctr;
+                    /* Currently the vx_image buffers are alloated in one shot for multiple planes.
+                        So if we are freeing this buffer then we need to get only the first plane
+                        pointer address but add up the all the sizes to free the entire buffer */
+                    vx_uint32 freeSize = 0;
+                    for(ctr = 0; ctr < numEntries; ctr++)
                     {
-                        vx_int32 ctr;
-                        /* Currently the vx_image buffers are alloated in one shot for multiple planes.
-                            So if we are freeing this buffer then we need to get only the first plane
-                            pointer address but add up the all the sizes to free the entire buffer */
-                        vx_uint32 freeSize = 0;
-                        for(ctr = 0; ctr < numEntries; ctr++)
-                        {
-                            freeSize += size[ctr];
-                        }
-
-                        TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Freeing image output %d, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", out, bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
-
-                        for(ctr = 0; ctr < numEntries; ctr++)
-                        {
-                            virtAddr[ctr] = NULL;
-                        }
-
-                        /* Assign NULL handles to the OpenVx objects as it will avoid
-                            doing a tivxMemFree twice, once now and once during release */
-                        status = tivxReferenceImportHandle(ref,
-                                                        (const void **)virtAddr,
-                                                        (const uint32_t *)size,
-                                                        numEntries);
+                        freeSize += size[ctr];
                     }
-                    vxReleaseReference(&ref);
+
+                    TIOVX_MODULE_PRINTF("[DL-COLOR-BLEND-MODULE] Freeing image output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+
+                    for(ctr = 0; ctr < numEntries; ctr++)
+                    {
+                        virtAddr[ctr] = NULL;
+                    }
+
+                    /* Assign NULL handles to the OpenVx objects as it will avoid
+                        doing a tivxMemFree twice, once now and once during release */
+                    status = tivxReferenceImportHandle(ref,
+                                                    (const void **)virtAddr,
+                                                    (const uint32_t *)size,
+                                                    numEntries);
                 }
+                vxReleaseReference(&ref);
             }
         }
     }
@@ -695,12 +648,12 @@ vx_status tiovx_dl_color_blend_module_release_buffers(TIOVXDLColorBlendModuleObj
     return status;
 }
 
-vx_status tiovx_dl_color_blend_module_add_write_output_node(vx_graph graph, TIOVXDLColorBlendModuleObj *obj, vx_int32 out)
+vx_status tiovx_dl_color_blend_module_add_write_output_node(vx_graph graph, TIOVXDLColorBlendModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
     /* Need to improve this section, currently one write node can take only one image. */
-    vx_tensor output_tensor = (vx_tensor)vxGetObjectArrayItem(obj->img_outputs[out].arr[0], 0);
+    vx_tensor output_tensor = (vx_tensor)vxGetObjectArrayItem(obj->img_output.arr[0], 0);
     obj->write_node = tivxWriteTensorNode(graph, output_tensor, obj->file_path, obj->file_prefix);
     vxReleaseTensor(&output_tensor);
 
