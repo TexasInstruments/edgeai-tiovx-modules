@@ -73,8 +73,7 @@ typedef struct {
 
     ImgObj img_input;
     TensorObj tensor_input;
-
-    ImgObj img_outputs[TIVX_DL_COLOR_BLEND_MAX_OUTPUTS];
+    ImgObj img_output;
 
     /* Input parameters */
     vx_int32 num_channels;
@@ -96,7 +95,7 @@ vx_status tiovx_dl_color_blend_module_delete(TIOVXDLColorBlendModuleObj *obj);
 vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendModuleObj *obj, vx_object_array img_input_arr, vx_object_array tensor_input_arr, const char* target_string);
 vx_status tiovx_dl_color_blend_module_release_buffers(TIOVXDLColorBlendModuleObj *obj);
 
-vx_status tiovx_dl_color_blend_module_add_write_output_node(vx_graph graph, TIOVXDLColorBlendModuleObj *obj, vx_int32 out);
+vx_status tiovx_dl_color_blend_module_add_write_output_node(vx_graph graph, TIOVXDLColorBlendModuleObj *obj);
 vx_status tiovx_dl_color_blend_module_send_write_output_cmd(TIOVXDLColorBlendModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
 
 #endif

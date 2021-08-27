@@ -145,7 +145,6 @@ static vx_status app_init(AppObj *obj)
         dlColorBlendObj->num_channels = APP_NUM_CH;
         dlColorBlendObj->en_out_image_write = 0;
 
-        dlColorBlendObj->params.num_outputs = 1;
         dlColorBlendObj->params.use_color_map = 0;
 
         dlColorBlendObj->img_input.bufq_depth = APP_BUFQ_DEPTH;
@@ -160,10 +159,10 @@ static vx_status app_init(AppObj *obj)
         dlColorBlendObj->tensor_input.dim_sizes[1] = TENSOR_HEIGHT;
         dlColorBlendObj->tensor_input.dim_sizes[2] = 1;
 
-        dlColorBlendObj->img_outputs[0].bufq_depth = APP_BUFQ_DEPTH;
-        dlColorBlendObj->img_outputs[0].color_format = VX_DF_IMAGE_NV12;
-        dlColorBlendObj->img_outputs[0].width = IMAGE_WIDTH;
-        dlColorBlendObj->img_outputs[0].height = IMAGE_HEIGHT;
+        dlColorBlendObj->img_output.bufq_depth = APP_BUFQ_DEPTH;
+        dlColorBlendObj->img_output.color_format = VX_DF_IMAGE_NV12;
+        dlColorBlendObj->img_output.width = IMAGE_WIDTH;
+        dlColorBlendObj->img_output.height = IMAGE_HEIGHT;
 
         /* Initialize modules */
         status = tiovx_dl_color_blend_module_init(obj->context, dlColorBlendObj);
@@ -230,10 +229,10 @@ static vx_status app_create_graph(AppObj *obj)
     if((vx_status)VX_SUCCESS == status)
     {
         status = add_graph_parameter_by_node_index(obj->graph, obj->dlColorBlendObj.node, 3);
-        obj->dlColorBlendObj.img_outputs[0].graph_parameter_index = graph_parameter_index;
+        obj->dlColorBlendObj.img_output.graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->dlColorBlendObj.img_outputs[0].image_handle[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->dlColorBlendObj.img_output.image_handle[0];
         graph_parameter_index++;
     }
 
@@ -290,19 +289,19 @@ static vx_status app_run_graph(AppObj *obj)
     /* These can be moved to app_init() */
     allocate_image_buffers(&dlColorBlendObj->img_input, inImageAddr, inImageSizes);
     allocate_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr, inTensorSizes);
-    allocate_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr, outImageSizes);
+    allocate_image_buffers(&dlColorBlendObj->img_output, outImageAddr, outImageSizes);
 
     bufq = 0;
     assign_image_buffers(&dlColorBlendObj->img_input, inImageAddr[bufq], inImageSizes[bufq], bufq);
     assign_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
-    assign_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr[bufq], outImageSizes[bufq], bufq);
+    assign_image_buffers(&dlColorBlendObj->img_output, outImageAddr[bufq], outImageSizes[bufq], bufq);
 
     APP_PRINTF("Enqueueing input image buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.img_input.graph_parameter_index, (vx_reference*)&dlColorBlendObj->img_input.image_handle[0], 1);
     APP_PRINTF("Enqueueing input tensor buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.tensor_input.graph_parameter_index, (vx_reference*)&dlColorBlendObj->tensor_input.tensor_handle[0], 1);
     APP_PRINTF("Enqueueing output image buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.img_outputs[0].graph_parameter_index, (vx_reference*)&dlColorBlendObj->img_outputs[0].image_handle[0], 1);
+    vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.img_output.graph_parameter_index, (vx_reference*)&dlColorBlendObj->img_output.image_handle[0], 1);
 
     APP_PRINTF("Processing!\n");
     status = vxScheduleGraph(obj->graph);
@@ -316,16 +315,16 @@ static vx_status app_run_graph(AppObj *obj)
 
     vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.img_input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
     vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.tensor_input.graph_parameter_index, (vx_reference*)&tensor_o, 1, &num_refs);
-    vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.img_outputs[0].graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.img_output.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
 
     release_image_buffers(&dlColorBlendObj->img_input, inImageAddr[bufq], inImageSizes[bufq], bufq);
     release_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
-    release_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr[bufq], outImageSizes[bufq], bufq);
+    release_image_buffers(&dlColorBlendObj->img_output, outImageAddr[bufq], outImageSizes[bufq], bufq);
 
     /* These can move to deinit() */
     delete_image_buffers(&dlColorBlendObj->img_input, inImageAddr, inImageSizes);
     delete_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr, inTensorSizes);
-    delete_image_buffers(&dlColorBlendObj->img_outputs[0], outImageAddr, outImageSizes);
+    delete_image_buffers(&dlColorBlendObj->img_output, outImageAddr, outImageSizes);
 
     return status;
 }

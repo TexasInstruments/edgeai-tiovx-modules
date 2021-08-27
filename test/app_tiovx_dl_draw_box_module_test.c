@@ -145,7 +145,6 @@ static vx_status app_init(AppObj *obj)
         dlDrawBoxObj->num_channels = APP_NUM_CH;
         dlDrawBoxObj->en_out_image_write = 0;
 
-        dlDrawBoxObj->params.num_outputs = 1;
         dlDrawBoxObj->params.use_color_map = 0;
 
         dlDrawBoxObj->img_input.bufq_depth = APP_BUFQ_DEPTH;
@@ -160,10 +159,10 @@ static vx_status app_init(AppObj *obj)
         dlDrawBoxObj->tensor_input.dim_sizes[1] = TENSOR_HEIGHT;
         dlDrawBoxObj->tensor_input.dim_sizes[2] = 1;
 
-        dlDrawBoxObj->img_outputs[0].bufq_depth = APP_BUFQ_DEPTH;
-        dlDrawBoxObj->img_outputs[0].color_format = VX_DF_IMAGE_NV12;
-        dlDrawBoxObj->img_outputs[0].width = IMAGE_WIDTH;
-        dlDrawBoxObj->img_outputs[0].height = IMAGE_HEIGHT;
+        dlDrawBoxObj->img_output.bufq_depth = APP_BUFQ_DEPTH;
+        dlDrawBoxObj->img_output.color_format = VX_DF_IMAGE_NV12;
+        dlDrawBoxObj->img_output.width = IMAGE_WIDTH;
+        dlDrawBoxObj->img_output.height = IMAGE_HEIGHT;
 
         /* Initialize modules */
         status = tiovx_dl_draw_box_module_init(obj->context, dlDrawBoxObj);
@@ -230,10 +229,10 @@ static vx_status app_create_graph(AppObj *obj)
     if((vx_status)VX_SUCCESS == status)
     {
         status = add_graph_parameter_by_node_index(obj->graph, obj->dlDrawBoxObj.node, 3);
-        obj->dlDrawBoxObj.img_outputs[0].graph_parameter_index = graph_parameter_index;
+        obj->dlDrawBoxObj.img_output.graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->dlDrawBoxObj.img_outputs[0].image_handle[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->dlDrawBoxObj.img_output.image_handle[0];
         graph_parameter_index++;
     }
 
@@ -290,19 +289,19 @@ static vx_status app_run_graph(AppObj *obj)
     /* These can be moved to app_init() */
     allocate_image_buffers(&dlDrawBoxObj->img_input, inImageAddr, inImageSizes);
     allocate_tensor_buffers(&dlDrawBoxObj->tensor_input, inTensorAddr, inTensorSizes);
-    allocate_image_buffers(&dlDrawBoxObj->img_outputs[0], outImageAddr, outImageSizes);
+    allocate_image_buffers(&dlDrawBoxObj->img_output, outImageAddr, outImageSizes);
 
     bufq = 0;
     assign_image_buffers(&dlDrawBoxObj->img_input, inImageAddr[bufq], inImageSizes[bufq], bufq);
     assign_tensor_buffers(&dlDrawBoxObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
-    assign_image_buffers(&dlDrawBoxObj->img_outputs[0], outImageAddr[bufq], outImageSizes[bufq], bufq);
+    assign_image_buffers(&dlDrawBoxObj->img_output, outImageAddr[bufq], outImageSizes[bufq], bufq);
 
     APP_PRINTF("Enqueueing input image buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlDrawBoxObj.img_input.graph_parameter_index, (vx_reference*)&dlDrawBoxObj->img_input.image_handle[0], 1);
     APP_PRINTF("Enqueueing input tensor buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlDrawBoxObj.tensor_input.graph_parameter_index, (vx_reference*)&dlDrawBoxObj->tensor_input.tensor_handle[0], 1);
     APP_PRINTF("Enqueueing output image buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlDrawBoxObj.img_outputs[0].graph_parameter_index, (vx_reference*)&dlDrawBoxObj->img_outputs[0].image_handle[0], 1);
+    vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlDrawBoxObj.img_output.graph_parameter_index, (vx_reference*)&dlDrawBoxObj->img_output.image_handle[0], 1);
 
     APP_PRINTF("Processing!\n");
     status = vxScheduleGraph(obj->graph);
@@ -316,16 +315,16 @@ static vx_status app_run_graph(AppObj *obj)
 
     vxGraphParameterDequeueDoneRef(obj->graph, obj->dlDrawBoxObj.img_input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
     vxGraphParameterDequeueDoneRef(obj->graph, obj->dlDrawBoxObj.tensor_input.graph_parameter_index, (vx_reference*)&tensor_o, 1, &num_refs);
-    vxGraphParameterDequeueDoneRef(obj->graph, obj->dlDrawBoxObj.img_outputs[0].graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, obj->dlDrawBoxObj.img_output.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
 
     release_image_buffers(&dlDrawBoxObj->img_input, inImageAddr[bufq], inImageSizes[bufq], bufq);
     release_tensor_buffers(&dlDrawBoxObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
-    release_image_buffers(&dlDrawBoxObj->img_outputs[0], outImageAddr[bufq], outImageSizes[bufq], bufq);
+    release_image_buffers(&dlDrawBoxObj->img_output, outImageAddr[bufq], outImageSizes[bufq], bufq);
 
     /* These can move to deinit() */
     delete_image_buffers(&dlDrawBoxObj->img_input, inImageAddr, inImageSizes);
     delete_tensor_buffers(&dlDrawBoxObj->tensor_input, inTensorAddr, inTensorSizes);
-    delete_image_buffers(&dlDrawBoxObj->img_outputs[0], outImageAddr, outImageSizes);
+    delete_image_buffers(&dlDrawBoxObj->img_output, outImageAddr, outImageSizes);
 
     return status;
 }
