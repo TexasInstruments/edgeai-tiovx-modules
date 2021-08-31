@@ -65,12 +65,13 @@
 
 #define APP_BUFQ_DEPTH   (1)
 #define APP_NUM_CH       (1)
+#define APP_NUM_CLASSES  (8)
 
-#define IMAGE_WIDTH  (1280)
-#define IMAGE_HEIGHT (720)
+#define IMAGE_WIDTH  (640)
+#define IMAGE_HEIGHT (480)
 
-#define TENSOR_WIDTH  (640)
-#define TENSOR_HEIGHT (320)
+#define TENSOR_WIDTH  (IMAGE_WIDTH >> 1)
+#define TENSOR_HEIGHT (IMAGE_HEIGHT >> 1)
 
 typedef struct {
 
@@ -146,9 +147,10 @@ static vx_status app_init(AppObj *obj)
         dlColorBlendObj->en_out_image_write = 0;
 
         dlColorBlendObj->params.use_color_map = 0;
+        dlColorBlendObj->params.num_classes = APP_NUM_CLASSES;
 
         dlColorBlendObj->img_input.bufq_depth = APP_BUFQ_DEPTH;
-        dlColorBlendObj->img_input.color_format = VX_DF_IMAGE_NV12;
+        dlColorBlendObj->img_input.color_format = VX_DF_IMAGE_RGB;
         dlColorBlendObj->img_input.width = IMAGE_WIDTH;
         dlColorBlendObj->img_input.height = IMAGE_HEIGHT;
 
@@ -160,7 +162,7 @@ static vx_status app_init(AppObj *obj)
         dlColorBlendObj->tensor_input.dim_sizes[2] = 1;
 
         dlColorBlendObj->img_output.bufq_depth = APP_BUFQ_DEPTH;
-        dlColorBlendObj->img_output.color_format = VX_DF_IMAGE_NV12;
+        dlColorBlendObj->img_output.color_format = VX_DF_IMAGE_RGB;
         dlColorBlendObj->img_output.width = IMAGE_WIDTH;
         dlColorBlendObj->img_output.height = IMAGE_HEIGHT;
 
@@ -267,9 +269,9 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_image_filename = "./test_data/input/vehicle.yuv";
-    char * input_tensor_filename = "./test_data/input/vehicle_seg_mask.bin";
-    char * output_filename = "/opt/vision_apps/test_data/vehicle.yuv";
+    char * input_image_filename = "./data/input/baboon_640x480_rgb.bmp";
+    char * input_tensor_filename = "./data/output/baboon_mask";
+    char * output_image_filename = "./data/output/baboon_out_640x480_rgb.bmp";
 
     vx_image input_o, output_o;
     vx_tensor tensor_o;
@@ -296,6 +298,18 @@ static vx_status app_run_graph(AppObj *obj)
     assign_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
     assign_image_buffers(&dlColorBlendObj->img_output, outImageAddr[bufq], outImageSizes[bufq], bufq);
 
+    create_tensor_mask(dlColorBlendObj->tensor_input.tensor_handle[0], APP_NUM_CLASSES);
+    writeTensor(input_tensor_filename, dlColorBlendObj->tensor_input.tensor_handle[0]);
+
+    if(dlColorBlendObj->img_input.color_format == VX_DF_IMAGE_NV12)
+    {
+        readImage(input_image_filename, dlColorBlendObj->img_input.image_handle[0]);
+    }
+    else if (dlColorBlendObj->img_input.color_format == VX_DF_IMAGE_RGB)
+    {
+        tivx_utils_load_vximage_from_bmpfile (dlColorBlendObj->img_input.image_handle[0], input_image_filename, vx_false_e);
+    }
+
     APP_PRINTF("Enqueueing input image buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, obj->dlColorBlendObj.img_input.graph_parameter_index, (vx_reference*)&dlColorBlendObj->img_input.image_handle[0], 1);
     APP_PRINTF("Enqueueing input tensor buffers!\n");
@@ -317,6 +331,15 @@ static vx_status app_run_graph(AppObj *obj)
     vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.tensor_input.graph_parameter_index, (vx_reference*)&tensor_o, 1, &num_refs);
     vxGraphParameterDequeueDoneRef(obj->graph, obj->dlColorBlendObj.img_output.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
 
+    if(dlColorBlendObj->img_output.color_format == VX_DF_IMAGE_NV12)
+    {
+        writeImage(output_image_filename, dlColorBlendObj->img_output.image_handle[0]);
+    }
+    else if (dlColorBlendObj->img_input.color_format == VX_DF_IMAGE_RGB)
+    {
+        tivx_utils_save_vximage_to_bmpfile(output_image_filename, dlColorBlendObj->img_output.image_handle[0]);
+    }
+
     release_image_buffers(&dlColorBlendObj->img_input, inImageAddr[bufq], inImageSizes[bufq], bufq);
     release_tensor_buffers(&dlColorBlendObj->tensor_input, inTensorAddr[bufq], inTensorSizes[bufq], bufq);
     release_image_buffers(&dlColorBlendObj->img_output, outImageAddr[bufq], outImageSizes[bufq], bufq);
@@ -328,3 +351,4 @@ static vx_status app_run_graph(AppObj *obj)
 
     return status;
 }
+

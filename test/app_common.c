@@ -728,6 +728,72 @@ static vx_uint32 get_bit_depth(vx_enum data_type)
     return size;
 }
 
+vx_status readTensor(char* file_name, vx_tensor tensor_o)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_size num_dims;
+    void *data_ptr;
+    vx_map_id map_id;
+
+    vx_size start[APP_MAX_TENSOR_DIMS];
+    vx_size tensor_strides[APP_MAX_TENSOR_DIMS];
+    vx_size tensor_sizes[APP_MAX_TENSOR_DIMS];
+    vx_char new_name[APP_MAX_FILE_PATH];
+    vx_enum data_type;
+
+    vxQueryTensor(tensor_o, VX_TENSOR_NUMBER_OF_DIMS, &num_dims, sizeof(vx_size));
+    if(num_dims != 3)
+    {
+        APP_ERROR("Number of dims are != 3 \n");
+        status = VX_FAILURE;
+    }
+
+    vxQueryTensor(tensor_o, VX_TENSOR_DATA_TYPE, &data_type, sizeof(vx_enum));
+    vx_uint32 bit_depth = get_bit_depth(data_type);
+    if(bit_depth == 0)
+    {
+        APP_ERROR("Incorrect data_type/bit-depth!\n \n");
+        status = VX_FAILURE;
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        vxQueryTensor(tensor_o, VX_TENSOR_DIMS, tensor_sizes, num_dims * sizeof(vx_size));
+
+        start[0] = start[1] = start[2] = 0;
+
+        tensor_strides[0] = bit_depth;
+        tensor_strides[1] = tensor_sizes[0] * tensor_strides[0];
+        tensor_strides[2] = tensor_sizes[1] * tensor_strides[1];
+
+        status = tivxMapTensorPatch(tensor_o, num_dims, start, tensor_sizes, &map_id, tensor_strides, &data_ptr, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+
+        snprintf(new_name, APP_MAX_FILE_PATH, "%s_%dx%d.bin", file_name, (uint32_t)tensor_sizes[0], (uint32_t)tensor_sizes[1]);
+
+        FILE *fp = fopen(new_name, "rb");
+        if(NULL == fp)
+        {
+            APP_ERROR("Unable to open file %s \n", new_name);
+            status = VX_FAILURE;
+        }
+
+        if(VX_SUCCESS == status)
+        {
+            fread(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth, fp);
+
+            tivxUnmapTensorPatch(tensor_o, map_id);
+        }
+
+        if(fp)
+        {
+            fclose(fp);
+        }
+    }
+
+    return(status);
+}
+
 vx_status writeTensor(char* file_name, vx_tensor tensor_o)
 {
     vx_status status = VX_SUCCESS;
@@ -992,4 +1058,95 @@ vx_status writeImage(char* file_name, vx_image img)
     }
 
     return(status);
+}
+
+static inline void assign_class_ids(void *data_ptr, int32_t offset, vx_enum data_type, int32_t class_id)
+{
+    if(data_type == VX_TYPE_INT8)
+    {
+        *((int8_t *)data_ptr + offset) = class_id;
+    }
+    if(data_type == VX_TYPE_UINT8)
+    {
+        *((uint8_t *)data_ptr + offset) = class_id;
+    }
+    if(data_type == VX_TYPE_INT16)
+    {
+        *((int16_t *)data_ptr + offset) = class_id;
+    }
+    if(data_type == VX_TYPE_UINT16)
+    {
+        *((uint16_t *)data_ptr + offset) = class_id;
+    }
+    if(data_type == VX_TYPE_INT32)
+    {
+        *((int32_t *)data_ptr + offset) = class_id;
+    }
+    if(data_type == VX_TYPE_UINT32)
+    {
+        *((uint32_t *)data_ptr + offset) = class_id;
+    }
+    if(data_type == VX_TYPE_FLOAT32)
+    {
+        *((float *)data_ptr + offset) = class_id;
+    }
+}
+
+vx_status create_tensor_mask(vx_tensor tensor_o, vx_int32 num_classes)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_size num_dims;
+    void *data_ptr;
+    vx_map_id map_id;
+
+    vx_size start[APP_MAX_TENSOR_DIMS];
+    vx_size tensor_strides[APP_MAX_TENSOR_DIMS];
+    vx_size tensor_sizes[APP_MAX_TENSOR_DIMS];
+    vx_char new_name[APP_MAX_FILE_PATH];
+    vx_enum data_type;
+
+    vxQueryTensor(tensor_o, VX_TENSOR_NUMBER_OF_DIMS, &num_dims, sizeof(vx_size));
+    if(num_dims != 3)
+    {
+        APP_ERROR("Number of dims are != 3 \n");
+        status = VX_FAILURE;
+    }
+
+    vxQueryTensor(tensor_o, VX_TENSOR_DATA_TYPE, &data_type, sizeof(vx_enum));
+    vx_uint32 bit_depth = get_bit_depth(data_type);
+    if(bit_depth == 0)
+    {
+        APP_ERROR("Incorrect data_type/bit-depth!\n \n");
+        status = VX_FAILURE;
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        int32_t w, h;
+
+        vxQueryTensor(tensor_o, VX_TENSOR_DIMS, tensor_sizes, num_dims * sizeof(vx_size));
+
+        start[0] = start[1] = start[2] = 0;
+
+        tensor_strides[0] = bit_depth;
+        tensor_strides[1] = tensor_sizes[0] * tensor_strides[0];
+        tensor_strides[2] = tensor_sizes[1] * tensor_strides[1];
+
+        status = tivxMapTensorPatch(tensor_o, num_dims, start, tensor_sizes, &map_id, tensor_strides, &data_ptr, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+
+        for(h = 0; h < tensor_sizes[1]; h++)
+        {
+            for(w = 0; w < tensor_sizes[0]; w++)
+            {
+                int32_t offset = (h * tensor_sizes[0] + w);
+                assign_class_ids(data_ptr, offset, data_type, ((h>>4) % num_classes));
+            }
+        }
+
+        tivxUnmapTensorPatch(tensor_o, map_id);
+
+    }
+
+    return status;
 }
