@@ -602,7 +602,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
     return status;
 };
 
-//TODO do I need "out" parameter like multi scaler for multiple sensors? Or is the assumption that we have one sensor obj in struct?
+//DONE
 vx_status tiovx_aewb_module_add_write_output_node(vx_graph graph,TIOVXAEWBModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;

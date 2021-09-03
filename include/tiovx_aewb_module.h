@@ -82,42 +82,50 @@
  */
 typedef struct {
     /*! AEWB node object */
-    vx_node node;
+    vx_node node; //done
 
     /*! AEWB node config param object array */
-    vx_object_array config_arr;
+    vx_object_array config_arr; //done
 
     /*! AEWB node params structure to initialize config object */
-    tivx_aewb_config_t params;
+    tivx_aewb_config_t params; //done
 
     /*! AEWB DCC config user data object */
-    vx_user_data_object dcc_config;
+    vx_user_data_object dcc_config;//done
 
     /*! AEWB histogram object array */
-    vx_object_array histogram_arr;
+    vx_object_array histogram_arr;//done
 
     /*! AEWB output object array */
-    vx_object_array aewb_output_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
+    vx_object_array aewb_output_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];//done
    
     /*! AEWB input object array */
-    vx_object_array aewb_input_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
+    vx_object_array aewb_input_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];//done
 
     /*! Bufq depth of output */
-    vx_int32 out_bufq_depth;
+    vx_int32 out_bufq_depth;//done
 
     /*! Bufq depth of input */
-    vx_int32 in_bufq_depth;
+    vx_int32 in_bufq_depth;//done
+
+    /*! AEWB node graph parameter index of output */
+    vx_int32 output_graph_parameter_index;
+
+    /*! AEWB node graph parameter index of input */
+    vx_int32 input_graph_parameter_index;
 
     /*! AEWB sensor object */
     SensorObj sensorObj;
+    //TODO sensor_dcc_enabled, sensor_name, sensor_wdr_enabled, sensor_wdr_enabled, sensorParams.dccId
+    //sensor_exp_control_enabled, sensor_gain_control_enabled, num_cameras_enabled, ch_mask
 
     /* These params are needed only for writing intermediate output */
-    vx_array file_path;
-    vx_array file_prefix;
-    vx_node write_node;
-    vx_user_data_object write_cmd;
+    vx_array file_path;//done
+    vx_array file_prefix;//done
+    vx_node write_node;//done
+    vx_user_data_object write_cmd;//done
 
-    vx_char output_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
+    vx_char output_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];//done
 
 }TIOVXAEWBModuleObj;
 

@@ -62,9 +62,11 @@
 
 #include "app_common.h"
 #include "tiovx_aewb_module.h"
+#include "app_sensor_module.h"
 
 #define APP_BUFQ_DEPTH   (1)
-#define APP_NUM_CH       (1)
+
+#define APP_NUM_SEN       (1)
 
 #define IMAGE_WIDTH  (640)
 #define IMAGE_HEIGHT (480)
@@ -89,8 +91,7 @@ static vx_status app_verify_graph(AppObj *obj);
 static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
-//copied from color convert
-//TODO
+//DONE
 vx_status app_modules_aewb_test(vx_int32 argc, vx_char* argv[])
 {
     AppObj *obj = &gAppObj;
@@ -124,7 +125,7 @@ vx_status app_modules_aewb_test(vx_int32 argc, vx_char* argv[])
     return status;
 }
 
-//TODO + populate sensorObj
+//DONE
 static vx_status app_init(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -137,16 +138,12 @@ static vx_status app_init(AppObj *obj)
     {
         TIOVXAEWBModuleObj *aewbObj = &obj->aewbObj;
 
-        aewbObj->num_channels = APP_NUM_CH;
-        aewbObj->input.bufq_depth = APP_BUFQ_DEPTH;
-        aewbObj->input.color_format = VX_DF_IMAGE_RGB;
+        aewbObj->in_bufq_depth = APP_BUFQ_DEPTH
+        aewbObj->out_bufq_depth = APP_BUFQ_DEPTH;
 
-        aewbObj->output.bufq_depth = APP_BUFQ_DEPTH;
-        aewbObj->output.color_format = VX_DF_IMAGE_IYUV;
-
-        aewbObj->width = IMAGE_WIDTH;
-        aewbObj->height = IMAGE_HEIGHT;
-        aewbObj->en_out_image_write = 0;
+        SensorObj *sensorObj = &aewbObj->sensorObj;
+        app_querry_sensor(sensorObj);
+        app_init_sensor(sensorObj,"test_sensor");
 
         /* Initialize modules */
         status = tiovx_aewb_module_init(obj->context, aewbObj);
@@ -156,15 +153,17 @@ static vx_status app_init(AppObj *obj)
     return status;
 }
 
-//TODO
+//DONE
 static void app_deinit(AppObj *obj)
-{
+{        
+    app_deinit_sensor(&obj->aewbObj->sensorObj);
+
     tiovx_aewb_module_deinit(&obj->aewbObj);
 
     vxReleaseContext(&obj->context);
 }
 
-//TODO
+//DONE
 static void app_delete_graph(AppObj *obj)
 {
     tiovx_aewb_module_delete(&obj->aewbObj);
@@ -172,7 +171,7 @@ static void app_delete_graph(AppObj *obj)
     vxReleaseGraph(&obj->graph);
 }
 
-//TODO
+//IN PROGRESS refs_list may need to point to different location because in/out is object array
 static vx_status app_create_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -192,20 +191,22 @@ static vx_status app_create_graph(AppObj *obj)
     if((vx_status)VX_SUCCESS == status)
     {
         status = add_graph_parameter_by_node_index(obj->graph, obj->aewbObj.node, 0);
-        obj->aewbObj.input.graph_parameter_index = graph_parameter_index;
+
+        obj->aewbObj.input_graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.input.image_handle[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.aewb_input_arr[0];
         graph_parameter_index++;
     }
 
     if((vx_status)VX_SUCCESS == status)
     {
         status = add_graph_parameter_by_node_index(obj->graph, obj->aewbObj.node, 1);
-        obj->aewbObj.output.graph_parameter_index = graph_parameter_index;
+
+        obj->aewbObj.output_graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.output.image_handle[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.aewb_output_arr[0];
         graph_parameter_index++;
     }
 
@@ -220,7 +221,7 @@ static vx_status app_create_graph(AppObj *obj)
     return status;
 }
 
-//TODO
+//DONE
 static vx_status app_verify_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -237,22 +238,126 @@ static vx_status app_verify_graph(AppObj *obj)
     return status;
 }
 
-//TODO
-static vx_status writeOutput(char* file_name, vx_image out_img);
+//DONE
+vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
+{
+    vx_status status = VX_SUCCESS;
 
-//TODO
+    void      *buf_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    vx_uint32  buf_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
+
+    vx_size data_size;
+    uint32_t num_bufs;
+    
+    status = vxQueryUserDataObject(user_data, VX_USER_DATA_OBJECT_SIZE, &data_size, sizeof(data_size));
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void *pBase = tivxMemAlloc(data_size, TIVX_MEM_EXTERNAL);
+
+        /* Export handles to get valid size information. */
+        status = tivxReferenceExportHandle((vx_reference)user_data,
+                                            buf_addr,
+                                            buf_sizes,
+                                            TIOVX_MODULES_MAX_REF_HANDLES,
+                                            &num_bufs);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            virtAddr[0] = (void *)pBase;
+            sizes[0] = buf_sizes[0];
+        }
+    }
+
+    return status;
+}
+
+//DONE
+vx_status delete_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_size data_size;
+
+    status = vxQueryUserDataObject(user_data, VX_USER_DATA_OBJECT_SIZE, &data_size, sizeof(data_size));
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+
+        tivxMemFree(virtAddr[0], data_size, TIVX_MEM_EXTERNAL);
+
+        virtAddr[0] = NULL;
+        sizes[0] = 0;
+    }
+
+    return status;
+};
+
+//DONE
+vx_status assign_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void * addr[4];
+        vx_int32 bufsize[4];
+        vx_int32 p;
+
+        for(p = 0; p < num_bufs; p++)
+        {
+            addr[p] = virtAddr[p];
+            bufsize[p] = sizes[p];
+        }
+
+        status = tivxReferenceImportHandle((vx_reference)user_data,
+                                        (const void **)addr,
+                                        (const uint32_t *)bufsize,
+                                        num_bufs);
+    }
+
+    return status;
+};
+
+//DONE
+vx_status release_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void * addr[4];
+        vx_int32 bufsize[4];
+        vx_int32 p;
+
+        for(p = 0; p < num_bufs; p++)
+        {
+            addr[p] = NULL;
+            bufsize[p] = sizes[p];
+        }
+
+        /* Assign NULL handles to the OpenVx objects as it will avoid
+            doing a tivxMemFree twice, once now and once during release */
+        status = tivxReferenceImportHandle((vx_reference)user_data,
+                                            (const void **)addr,
+                                            (const uint32_t *)bufsize,
+                                            num_bufs);
+    }
+
+    return status;
+};
+
+//TODO - copied from Image Mosaic, should modify for AEWB
 static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/baboon_640x480_rgb.bmp";
-    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/baboon_640x480_i420.yuv";
-
-    vx_image input_o, output_o;
-
     TIOVXAEWBModuleObj *aewbObj = &obj->aewbObj;
     vx_int32 bufq;
-    uint32_t num_refs;
+    //vx_size out_num_planes;
+    //vx_size back_num_planes;
+    vx_size in_size;
+    vx_size out_size;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
@@ -260,49 +365,41 @@ static vx_status app_run_graph(AppObj *obj)
     vx_uint32 inSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
     vx_uint32 outSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
+    //vxQueryImage(aewbObj->output_image[0], VX_IMAGE_PLANES, &out_num_planes, sizeof(out_num_planes));
+    //vxQueryImage(aewbObj->background_image[0], VX_IMAGE_PLANES, &back_num_planes, sizeof(back_num_planes));
+    
+    //TODO extract user data from object array
+    vxQueryUserDataObject(aewbObj->aewb_output_arr[0], VX_USER_DATA_OBJECT_SIZE, &data_size, sizeof(data_size));
+
+    //TODO use allocate_single_user_data_buffer, assign_*, release_*, and delete_* for user_data
     /* These can be moved to app_init() */
-    allocate_image_buffers(&aewbObj->input, inAddr, inSizes);
-    allocate_image_buffers(&aewbObj->output, outAddr, outSizes);
+    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
+    {
+        allocate_single_image_buffer(aewbObj->output_image[bufq], outAddr[bufq], outSizes[bufq]);
+    }
+    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
+    {
+        allocate_single_image_buffer(aewbObj->background_image[bufq], backAddr[bufq], backSizes[bufq]);
+    }
 
     bufq = 0;
-    assign_image_buffers(&aewbObj->input, inAddr[bufq], inSizes[bufq], bufq);
-    assign_image_buffers(&aewbObj->output, outAddr[bufq], outSizes[bufq], bufq);
+    assign_single_image_buffer(aewbObj->output_image[0], outAddr[bufq], outSizes[bufq], out_num_planes);
+    assign_single_image_buffer(aewbObj->background_image[0], outAddr[bufq], outSizes[bufq], back_num_planes);
 
-    if(obj->aewbObj.input.color_format == VX_DF_IMAGE_NV12)
-    {
-        readImage(input_filename, aewbObj->input.image_handle[0]);
-    }
-    else
-    {
-        tivx_utils_load_vximage_from_bmpfile (aewbObj->input.image_handle[0], input_filename, vx_false_e);
-    }
+    //status = vxProcessGraph(obj->graph);
 
-    APP_PRINTF("Enqueueing input buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&aewbObj->input.image_handle[0], 1);
-    APP_PRINTF("Enqueueing output buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, 1, (vx_reference*)&aewbObj->output.image_handle[0], 1);
-
-    APP_PRINTF("Processing!\n");
-    status = vxScheduleGraph(obj->graph);
-    if((vx_status)VX_SUCCESS != status) {
-      APP_PRINTF("Schedule Graph failed: %d!\n", status);
-    }
-    status = vxWaitGraph(obj->graph);
-    if((vx_status)VX_SUCCESS != status) {
-      APP_PRINTF("Wait Graph failed: %d!\n", status);
-    }
-
-    vxGraphParameterDequeueDoneRef(obj->graph, 0, (vx_reference*)&input_o, 1, &num_refs);
-    vxGraphParameterDequeueDoneRef(obj->graph, 1, (vx_reference*)&output_o, 1, &num_refs);
-
-    writeImage(output_filename, aewbObj->output.image_handle[0]);
-
-    release_image_buffers(&aewbObj->input, inAddr[bufq], inSizes[bufq], bufq);
-    release_image_buffers(&aewbObj->output, outAddr[bufq], outSizes[bufq], bufq);
+    release_single_image_buffer(aewbObj->output_image[0], outAddr[bufq], outSizes[bufq], out_num_planes);
+    release_single_image_buffer(aewbObj->background_image[0], outAddr[bufq], outSizes[bufq], back_num_planes);
 
     /* These can move to deinit() */
-    delete_image_buffers(&aewbObj->input, inAddr, inSizes);
-    delete_image_buffers(&aewbObj->output, outAddr, outSizes);
+    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
+    {
+        delete_single_image_buffer(aewbObj->output_image[bufq], outAddr[bufq], outSizes[bufq]);
+    }
+    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
+    {
+        delete_single_image_buffer(aewbObj->background_image[bufq], backAddr[bufq], backSizes[bufq]);
+    }
 
     return status;
 }
