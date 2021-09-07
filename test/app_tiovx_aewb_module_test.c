@@ -171,7 +171,7 @@ static void app_delete_graph(AppObj *obj)
     vxReleaseGraph(&obj->graph);
 }
 
-//IN PROGRESS refs_list may need to point to different location because in/out is object array
+//DONE refs_list may need to point to different location because in/out is object array
 static vx_status app_create_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -238,6 +238,7 @@ static vx_status app_verify_graph(AppObj *obj)
     return status;
 }
 
+///////////////////////
 //DONE
 vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
 {
@@ -304,7 +305,7 @@ vx_status assign_single_user_data_buffer(vx_user_data_object user_data, void *vi
         vx_int32 bufsize[4];
         vx_int32 p;
 
-        for(p = 0; p < num_bufs; p++)
+        for(p = 0; p < num_sensors; p++)
         {
             addr[p] = virtAddr[p];
             bufsize[p] = sizes[p];
@@ -347,17 +348,173 @@ vx_status release_single_user_data_buffer(vx_user_data_object user_data, void *v
     return status;
 };
 
-//TODO - copied from Image Mosaic, should modify for AEWB
+//DONE
+vx_status allocate_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES], vx_int32 bufq_depth)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_size num_ch;
+    vx_int32 bufq, ch;
+
+    APP_PRINTF("Allocating User Data Buffers \n");
+
+    for(bufq = 0; bufq < bufq_depth; bufq++)
+    {
+        vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            for(ch = 0; ch < num_ch; ch++)
+            {
+                vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+                if((vx_status)VX_SUCCESS == status)
+                {
+                    status = allocate_single_user_data_buffer
+                            (
+                                user_data,
+                                &virtAddr[bufq][ch],
+                                &sizes[bufq][ch]
+                            );
+                }
+
+                vxReleaseUserDataObject(&user_data);
+
+                APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[bufq][ch], sizes[bufq][ch]);
+
+                if((vx_status)VX_SUCCESS != status)
+                {
+                    APP_PRINTF("Unable to allocate single user data buffer!\n");
+                    break;
+                }
+            }
+        }
+    }
+
+    return status;
+}
+
+//DONE
+vx_status delete_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES],  vx_int32 bufq_depth)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 bufq, ch;
+    vx_size num_ch;
+
+    APP_PRINTF("Deleting User Data Buffers \n");
+    for(bufq = 0; bufq < bufq_depth; bufq++)
+    {
+        vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        for(ch = 0; ch < num_ch; ch++)
+        {
+            vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+            APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[bufq][ch], sizes[bufq][ch]);
+
+            if((vx_status)VX_SUCCESS == status)
+            {
+                status = delete_single_user_data_buffer
+                        (
+                            user_data,
+                            &virtAddr[bufq][ch],
+                            &sizes[bufq][ch]
+                        );
+
+                if((vx_status)VX_SUCCESS != status)
+                {
+                    APP_PRINTF("Unable to delete single user data buffer!\n");
+                    break;
+                }
+            }
+
+            vxReleaseUserDataObject(&user_data);
+        }
+    }
+
+    return status;
+}
+
+//DONE
+vx_status assign_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch;
+    vx_size num_ch;
+
+    vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Assigning User Data Buffers \n");
+
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+        APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[ch], sizes[ch]);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = assign_single_user_data_buffer(user_data, &virtAddr[ch], &sizes[ch], 1);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to assign single user data buffer!\n");
+            break;
+        }
+
+        vxReleaseTensor(&user_data);
+    }
+
+    return status;
+}
+
+//DONE
+vx_status release_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch, ctr;
+    vx_size num_ch;
+
+    vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Releasing User Data Buffers \n");
+
+    ctr = 0;
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+        APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[ch], sizes[ch]);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = release_single_user_data_buffer(user_data, &virtAddr[ctr], &sizes[ctr], 1);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to assign single user data buffer!\n");
+            break;
+        }
+
+        vxReleaseTensor(&user_data);
+    }
+
+    return status;
+}
+///////////////
+
+//DONE
 static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
     TIOVXAEWBModuleObj *aewbObj = &obj->aewbObj;
     vx_int32 bufq;
-    //vx_size out_num_planes;
-    //vx_size back_num_planes;
-    vx_size in_size;
-    vx_size out_size;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
@@ -365,42 +522,22 @@ static vx_status app_run_graph(AppObj *obj)
     vx_uint32 inSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
     vx_uint32 outSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
-    //vxQueryImage(aewbObj->output_image[0], VX_IMAGE_PLANES, &out_num_planes, sizeof(out_num_planes));
-    //vxQueryImage(aewbObj->background_image[0], VX_IMAGE_PLANES, &back_num_planes, sizeof(back_num_planes));
-    
-    //TODO extract user data from object array
-    vxQueryUserDataObject(aewbObj->aewb_output_arr[0], VX_USER_DATA_OBJECT_SIZE, &data_size, sizeof(data_size));
-
-    //TODO use allocate_single_user_data_buffer, assign_*, release_*, and delete_* for user_data
-    /* These can be moved to app_init() */
-    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
-    {
-        allocate_single_image_buffer(aewbObj->output_image[bufq], outAddr[bufq], outSizes[bufq]);
-    }
-    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
-    {
-        allocate_single_image_buffer(aewbObj->background_image[bufq], backAddr[bufq], backSizes[bufq]);
-    }
+    allocate_user_data_buffers(aewbObj->aewb_input_arr, inAddr, inSizes, APP_BUFQ_DEPTH);
+    allocate_user_data_buffers(aewbObj->aewb_output_arr, outAddr, outSizes, APP_BUFQ_DEPTH);
 
     bufq = 0;
-    assign_single_image_buffer(aewbObj->output_image[0], outAddr[bufq], outSizes[bufq], out_num_planes);
-    assign_single_image_buffer(aewbObj->background_image[0], outAddr[bufq], outSizes[bufq], back_num_planes);
+
+    assign_user_data_buffers(aewbObj->aewb_input_arr, inAddr[bufq], inSizes[bufq], bufq);
+    assign_user_data_buffers(aewbObj->aewb_output_arr, outAddr[bufq], outSizes[bufq], bufq);
 
     //status = vxProcessGraph(obj->graph);
 
-    release_single_image_buffer(aewbObj->output_image[0], outAddr[bufq], outSizes[bufq], out_num_planes);
-    release_single_image_buffer(aewbObj->background_image[0], outAddr[bufq], outSizes[bufq], back_num_planes);
+    release_user_data_buffers(aewbObj->aewb_input_arr, inAddr[bufq], inSizes[bufq], bufq);
+    release_user_data_buffers(aewbObj->aewb_output_arr, outAddr[bufq], outSizes[bufq], bufq);
 
-    /* These can move to deinit() */
-    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
-    {
-        delete_single_image_buffer(aewbObj->output_image[bufq], outAddr[bufq], outSizes[bufq]);
-    }
-    for(bufq = 0; bufq < APP_BUFQ_DEPTH; bufq++)
-    {
-        delete_single_image_buffer(aewbObj->background_image[bufq], backAddr[bufq], backSizes[bufq]);
-    }
-
+    delete_user_data_buffers(aewbObj->aewb_input_arr, inAddr, inSizes, bufq);
+    delete_user_data_buffers(aewbObj->aewb_output_arr, outAddr, outSizes, bufq);
+    
     return status;
 }
 
