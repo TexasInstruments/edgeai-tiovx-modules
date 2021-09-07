@@ -72,6 +72,8 @@
 #define APP_MODULES_TEST_IMG_MOSAIC (1)
 #define APP_MODULES_TEST_PRE_PROC (1)
 #define APP_MODULES_TEST_COLOR_BLEND (1)
+#define APP_MODULES_TEST_AEWB (1)
+
 
 int32_t appInit()
 {
@@ -151,6 +153,16 @@ int main(int argc, char *argv[])
         int app_modules_dl_color_blend_test(int argc, char* argv[]);
 
         status = app_modules_dl_color_blend_test(argc, argv);
+    }
+#endif
+
+#if (APP_MODULES_TEST_AEWB) 
+    if(status==0)
+    {
+        printf("Running AEWB module test\n");
+        int app_modules_aewb_test(int argc, char* argv[]);
+
+        status = app_modules_aewb_test(argc, argv);
     }
 #endif
 
