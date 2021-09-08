@@ -62,7 +62,7 @@
 
 #include "app_common.h"
 #include "tiovx_aewb_module.h"
-#include "app_sensor_module.h"
+#include "tiovx_sensor_module.h"
 
 #define APP_BUFQ_DEPTH   (1)
 
@@ -91,7 +91,6 @@ static vx_status app_verify_graph(AppObj *obj);
 static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
-//DONE
 vx_status app_modules_aewb_test(vx_int32 argc, vx_char* argv[])
 {
     AppObj *obj = &gAppObj;
@@ -125,7 +124,6 @@ vx_status app_modules_aewb_test(vx_int32 argc, vx_char* argv[])
     return status;
 }
 
-//DONE
 static vx_status app_init(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -142,8 +140,8 @@ static vx_status app_init(AppObj *obj)
         aewbObj->out_bufq_depth = APP_BUFQ_DEPTH;
 
         SensorObj *sensorObj = &aewbObj->sensorObj;
-        app_querry_sensor(sensorObj);
-        app_init_sensor(sensorObj,"test_sensor");
+        tiovx_querry_sensor(sensorObj);
+        tiovx_init_sensor(sensorObj,"test_sensor");
 
         /* Initialize modules */
         status = tiovx_aewb_module_init(obj->context, aewbObj);
@@ -153,17 +151,15 @@ static vx_status app_init(AppObj *obj)
     return status;
 }
 
-//DONE
 static void app_deinit(AppObj *obj)
 {        
-    app_deinit_sensor(&obj->aewbObj->sensorObj);
+    tiovx_deinit_sensor(&obj->aewbObj->sensorObj);
 
     tiovx_aewb_module_deinit(&obj->aewbObj);
 
     vxReleaseContext(&obj->context);
 }
 
-//DONE
 static void app_delete_graph(AppObj *obj)
 {
     tiovx_aewb_module_delete(&obj->aewbObj);
@@ -171,7 +167,6 @@ static void app_delete_graph(AppObj *obj)
     vxReleaseGraph(&obj->graph);
 }
 
-//DONE refs_list may need to point to different location because in/out is object array
 static vx_status app_create_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -184,29 +179,29 @@ static vx_status app_create_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = tiovx_aewb_module_create(obj->graph, &obj->aewbObj, NULL, TIVX_TARGET_DSP1);
+        status = tiovx_aewb_module_create(obj->graph, &obj->aewbObj, NULL, TIVX_TARGET_IPU1_0);
     }
 
     graph_parameter_index = 0;
     if((vx_status)VX_SUCCESS == status)
     {
-        status = add_graph_parameter_by_node_index(obj->graph, obj->aewbObj.node, 0);
+        status = add_graph_parameter_by_node_index(obj->graph, obj->aewbObj.node, 2);
 
         obj->aewbObj.input_graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.aewb_input_arr[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.aewb_input_handle[0];
         graph_parameter_index++;
     }
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = add_graph_parameter_by_node_index(obj->graph, obj->aewbObj.node, 1);
+        status = add_graph_parameter_by_node_index(obj->graph, obj->aewbObj.node, 4);
 
         obj->aewbObj.output_graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.aewb_output_arr[0];
+        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->aewbObj.aewb_output_handle[0];
         graph_parameter_index++;
     }
 
@@ -221,7 +216,6 @@ static vx_status app_create_graph(AppObj *obj)
     return status;
 }
 
-//DONE
 static vx_status app_verify_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -239,7 +233,6 @@ static vx_status app_verify_graph(AppObj *obj)
 }
 
 ///////////////////////
-//DONE
 vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
 {
     vx_status status = VX_SUCCESS;
@@ -248,32 +241,19 @@ vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *
     vx_uint32  buf_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
 
     vx_size data_size;
-    uint32_t num_bufs;
     
     status = vxQueryUserDataObject(user_data, VX_USER_DATA_OBJECT_SIZE, &data_size, sizeof(data_size));
 
     if((vx_status)VX_SUCCESS == status)
     {
         void *pBase = tivxMemAlloc(data_size, TIVX_MEM_EXTERNAL);
-
-        /* Export handles to get valid size information. */
-        status = tivxReferenceExportHandle((vx_reference)user_data,
-                                            buf_addr,
-                                            buf_sizes,
-                                            TIOVX_MODULES_MAX_REF_HANDLES,
-                                            &num_bufs);
-
-        if((vx_status)VX_SUCCESS == status)
-        {
-            virtAddr[0] = (void *)pBase;
-            sizes[0] = buf_sizes[0];
-        }
+        virtAddr[0] = (void *)pBase;
+        sizes[0] = buf_sizes[0];
     }
 
     return status;
 }
 
-//DONE
 vx_status delete_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
 {
     vx_status status = VX_SUCCESS;
@@ -294,7 +274,6 @@ vx_status delete_single_user_data_buffer(vx_user_data_object user_data, void *vi
     return status;
 };
 
-//DONE
 vx_status assign_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs)
 {
     vx_status status = VX_SUCCESS;
@@ -305,7 +284,7 @@ vx_status assign_single_user_data_buffer(vx_user_data_object user_data, void *vi
         vx_int32 bufsize[4];
         vx_int32 p;
 
-        for(p = 0; p < num_sensors; p++)
+        for(p = 0; p < num_bufs; p++)
         {
             addr[p] = virtAddr[p];
             bufsize[p] = sizes[p];
@@ -320,7 +299,6 @@ vx_status assign_single_user_data_buffer(vx_user_data_object user_data, void *vi
     return status;
 };
 
-//DONE
 vx_status release_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs)
 {
     vx_status status = VX_SUCCESS;
@@ -348,7 +326,6 @@ vx_status release_single_user_data_buffer(vx_user_data_object user_data, void *v
     return status;
 };
 
-//DONE
 vx_status allocate_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES], vx_int32 bufq_depth)
 {
     vx_status status = VX_SUCCESS;
@@ -394,7 +371,6 @@ vx_status allocate_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[]
     return status;
 }
 
-//DONE
 vx_status delete_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES],  vx_int32 bufq_depth)
 {
     vx_status status = VX_SUCCESS;
@@ -436,7 +412,6 @@ vx_status delete_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][T
     return status;
 }
 
-//DONE
 vx_status assign_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
 {
     vx_status status = VX_SUCCESS;
@@ -465,13 +440,12 @@ vx_status assign_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], 
             break;
         }
 
-        vxReleaseTensor(&user_data);
+        vxReleaseUserDataObject(&user_data);
     }
 
     return status;
 }
 
-//DONE
 vx_status release_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
 {
     vx_status status = VX_SUCCESS;
@@ -501,14 +475,13 @@ vx_status release_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[],
             break;
         }
 
-        vxReleaseTensor(&user_data);
+        vxReleaseUserDataObject(&user_data);
     }
 
     return status;
 }
 ///////////////
 
-//DONE
 static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;

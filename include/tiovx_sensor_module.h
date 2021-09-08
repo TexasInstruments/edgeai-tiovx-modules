@@ -59,8 +59,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef _APP_SENSOR_MODULE
-#define _APP_SENSOR_MODULE
+#ifndef _TIOVX_SENSOR_MODULE
+#define _TIOVX_SENSOR_MODULE
 
 /**
  * \defgroup group_vision_apps_modules_sensor Sensor Module
@@ -164,18 +164,18 @@ typedef struct {
  * \param [in,out] sensorObj    Sensor Module object which contains the sensor parameters
  *
  */
-vx_status app_querry_sensor(SensorObj *sensorObj);
+vx_status tiovx_querry_sensor(SensorObj *sensorObj);
 
 /** \brief Sensor module init sensor helper function
  *
  * This Sensor module init function initializes the sensor after the sensor has been queried and set using
- * the app_querry_sensor
+ * the tiovx_querry_sensor
  *
  * \param [in,out] sensorObj    Sensor Module object which contains the sensor parameters
  * \param [in]     objName      String of the name of this object
  *
  */
-vx_status app_init_sensor(SensorObj *sensorObj, char *objName);
+vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName);
 
 /** \brief Sensor module deinit sensor helper function
  *
@@ -184,7 +184,7 @@ vx_status app_init_sensor(SensorObj *sensorObj, char *objName);
  * \param [in,out] sensorObj    Sensor Module object which contains the sensor parameters
  *
  */
-void app_deinit_sensor(SensorObj *sensorObj);
+void tiovx_deinit_sensor(SensorObj *sensorObj);
 
 /* @} */
 

@@ -59,85 +59,34 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef _TIOVX_AEWB_MODULE
-#define _TIOVX_AEWB_MODULE
 
-/**
- * \defgroup group_vision_apps_modules_aewb AEWB Node Module
- *
- * \brief This section contains module APIs for the AEWB node tivxAewbNode
- *
- * \ingroup group_vision_apps_modules
- *
- * @{
- */
-
-#include "tiovx_modules_common.h"
 #include "tiovx_sensor_module.h"
 
-/** \brief AEWB Module Data Structure
- *
- * Contains the data objects required to use tivxAewbNode
- *
- */
-typedef struct {
-    /*! AEWB node object */
-    vx_node node; //done
+static char availableSensorNames[ISS_SENSORS_MAX_SUPPORTED_SENSOR][ISS_SENSORS_MAX_NAME];
 
-    /*! AEWB node config param object array */
-    vx_object_array config_arr; //done
+vx_status tiovx_querry_sensor(SensorObj *sensorObj)
+{
+    vx_status status = VX_SUCCESS;
 
-    /*! AEWB node params structure to initialize config object */
-    tivx_aewb_config_t params; //done
+    return (status);
+}
 
-    /*! AEWB DCC config user data object */
-    vx_user_data_object dcc_config;//done
+vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName)
+{
+    vx_status status = VX_SUCCESS;
+    sensorObj->sensor_dcc_enabled=0;
+    sensorObj->sensor_exp_control_enabled=0;
+    sensorObj->sensor_gain_control_enabled=0;
+    sensorObj->sensor_wdr_enabled=0;
+    sensorObj->num_cameras_enabled=1;
+    sensorObj->ch_mask=1;
+    sensorObj->sensor_name=objName;
+    sensorObj->sensorParams.dccId=0;
 
-    /*! AEWB histogram object array */
-    vx_object_array histogram_arr;//done
+    return status;
+}
 
-    /*! AEWB output object array */
-    vx_object_array aewb_output_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];//done
-
-    vx_user_data_object aewb_output_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
-   
-    /*! AEWB input object array */
-    vx_object_array aewb_input_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];//done
-
-    vx_user_data_object aewb_input_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
-
-    /*! Bufq depth of output */
-    vx_int32 out_bufq_depth;//done
-
-    /*! Bufq depth of input */
-    vx_int32 in_bufq_depth;//done
-
-    /*! AEWB node graph parameter index of output */
-    vx_int32 output_graph_parameter_index;
-
-    /*! AEWB node graph parameter index of input */
-    vx_int32 input_graph_parameter_index;
-
-    /*! AEWB sensor object */
-    SensorObj sensorObj;
-
-    /* These params are needed only for writing intermediate output */
-    vx_array file_path;//done
-    vx_array file_prefix;//done
-    vx_node write_node;//done
-    vx_user_data_object write_cmd;//done
-
-    vx_char output_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];//done
-
-}TIOVXAEWBModuleObj;
-
-vx_status tiovx_aewb_module_init(vx_context context, TIOVXAEWBModuleObj *obj);
-vx_status tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *obj);
-vx_status tiovx_aewb_module_delete(TIOVXAEWBModuleObj *obj);
-vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_object_array h3a_stats_arr, const char* target_string);
-vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj);
-
-vx_status tiovx_aewb_module_add_write_output_node(vx_graph graph,TIOVXAEWBModuleObj *obj);
-vx_status tiovx_aewb_module_send_write_output_cmd(TIOVXAEWBModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
-
-#endif
+void tiovx_deinit_sensor(SensorObj *sensorObj)
+{
+    return;
+}

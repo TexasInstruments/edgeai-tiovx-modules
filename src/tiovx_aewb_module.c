@@ -63,7 +63,6 @@
 #include "tiovx_aewb_module.h"
 
 
-//DONE
 static vx_status tiovx_aewb_module_configure_dcc(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
@@ -119,7 +118,6 @@ static vx_status tiovx_aewb_module_configure_dcc(vx_context context, AEWBObj *ae
     return status;
 }
 
-//DONE
 static vx_status tiovx_aewb_module_configure_aewb(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
@@ -152,7 +150,7 @@ static vx_status tiovx_aewb_module_configure_aewb(vx_context context, AEWBObj *a
         status = vxGetStatus((vx_reference)aewbObj->config_arr);
         if(status != VX_SUCCESS)
         {
-            TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create AEWB config object array! \n");
+            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB config object array! \n");
         }
         vxReleaseUserDataObject(&config);
 
@@ -180,13 +178,12 @@ static vx_status tiovx_aewb_module_configure_aewb(vx_context context, AEWBObj *a
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create AEWB config object! \n");
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB config object! \n");
     }
 
     return status;
 }
 
-//DONE
 static vx_status tiovx_aewb_module_create_histogram(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
@@ -199,7 +196,7 @@ static vx_status tiovx_aewb_module_create_histogram(vx_context context, AEWBObj 
         status = vxGetStatus((vx_reference)aewbObj->histogram_arr);
         if(status != VX_SUCCESS)
         {
-            TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create Histogram object array! \n");
+            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create Histogram object array! \n");
         }
         else
         {
@@ -209,17 +206,28 @@ static vx_status tiovx_aewb_module_create_histogram(vx_context context, AEWBObj 
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create Histogram object! \n");
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create Histogram object! \n");
     }
 
     return status;
 }
 
-//DONE
 static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 q;
+
+    if(aewbObj->out_bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
+    {
+        TIOVX_MODULE_ERROR("[AEWB-MODULE] Output buffer queue depth %d greater than max supported %d!\n", aewbObj->out_bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
+        return VX_FAILURE;
+    }
+
+    for(q = 0; q < TIOVX_MODULES_MAX_BUFQ_DEPTH; q++)
+    {
+        aewbObj->aewb_output_arr[q] = NULL;
+        aewbObj->aewb_output_handle[q]  = NULL;
+    }
 
     vx_user_data_object aewb_output =  vxCreateUserDataObject(context, "tivx_ae_awb_params_t", sizeof(tivx_ae_awb_params_t), NULL);
     status = vxGetStatus((vx_reference)aewb_output);
@@ -232,7 +240,7 @@ static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, AEWBOb
             status = vxGetStatus((vx_reference)aewbObj->aewb_output_arr[q]);
             if(status != VX_SUCCESS)
             {
-                TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create AEWB output object array! \n");
+                TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB output object array! \n");
                 break;
             }
             else
@@ -242,25 +250,39 @@ static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, AEWBOb
                 snprintf(name, VX_MAX_REFERENCE_NAME, "aewb_node_aewb_output_arr_%d", q);
                 vxSetReferenceName((vx_reference)aewbObj->aewb_output_arr[q], name);
             }
+            aewbObj->aewb_output_handle[q] = (vx_user_data_object)vxGetObjectArrayItem((vx_object_array)aewbObj->aewb_output_arr[q], 0);
+
         }
         vxReleaseUserDataObject(&aewb_output);
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create AEWB output object! \n");
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB output object! \n");
     }
 
     return status;
 }
 
-//DONE
 static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, AEWBObj  *aewbObj, SensorObj  *sensorObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 q;
 
+    if(aewbObj->in_bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
+    {
+        TIOVX_MODULE_ERROR("[AEWB-MODULE] Input buffer queue depth %d greater than max supported %d!\n", aewbObj->in_bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
+        return VX_FAILURE;
+    }
+
+    for(q = 0; q < TIOVX_MODULES_MAX_BUFQ_DEPTH; q++)
+    {
+        aewbObj->aewb_input_arr[q] = NULL;
+        aewbObj->aewb_input_handle[q]  = NULL;
+    }
+
     vx_user_data_object aewb_input =  vxCreateUserDataObject(context, "tivx_h3a_data_t", sizeof(tivx_h3a_data_t), NULL);
     status = vxGetStatus((vx_reference)aewb_input);
+
     if(status == VX_SUCCESS)
     {
         for(q = 0; q < obj->in_bufq_depth; q++)
@@ -269,7 +291,7 @@ static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, AEWBObj 
             status = vxGetStatus((vx_reference)aewbObj->aewb_input_arr[q]);
             if(status != VX_SUCCESS)
             {
-                TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create AEWB input object array! \n");
+                TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB input object array! \n");
                 break;
             }
             else
@@ -279,18 +301,19 @@ static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, AEWBObj 
                 snprintf(name, VX_MAX_REFERENCE_NAME, "aewb_node_aewb_input_arr_%d", q);
                 vxSetReferenceName((vx_reference)aewbObj->aewb_input_arr[q], name);
             }
+            aewbObj->aewb_input_handle[q] = (vx_user_data_object)vxGetObjectArrayItem((vx_object_array)aewbObj->aewb_input_arr[q], 0);
+
         }
         vxReleaseUserDataObject(&aewb_input);
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create AEWB input object! \n");
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB input object! \n");
     }
 
     return status;
 };
 
-//DONE
 vx_status tiovx_aewb_module_init(vx_context context, AEWBObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
@@ -328,7 +351,6 @@ vx_status tiovx_aewb_module_init(vx_context context, AEWBObj *aewbObj)
     return (status);
 }
 
-//DONE
 void tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
@@ -345,6 +367,11 @@ void tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
 
     for(q = 0; q < aewbObj->in_bufq_depth; q++)
     {
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Releasing input handle, bufq %d!\n", q);
+            status = vxReleaseUserDataObject(&aewbObj->aewb_input_handle[q]);
+        }
         if((vx_status)VX_SUCCESS == status)
         {
             TIOVX_MODULE_PRINTF("[AEWB-MODULE] Releasing input reference bufq %d!\n", q);
@@ -370,6 +397,11 @@ void tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
     {
         if((vx_status)VX_SUCCESS == status)
         {
+            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Releasing output handle, bufq %d!\n", q);
+            status = vxReleaseUserDataObject(&aewbObj->aewb_output_handle[q]);
+        }
+        if((vx_status)VX_SUCCESS == status)
+        {
             TIOVX_MODULE_PRINTF("[AEWB-MODULE] Releasing output array reference bufq %d!\n", q);
             status = vxReleaseObjectArray(&aewbObj->aewb_output_arr[q]);
 
@@ -377,7 +409,6 @@ void tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
     }
 }
 
-//DONE
 void tiovx_aewb_module_delete(TIOVXAEWBModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -401,7 +432,6 @@ void tiovx_aewb_module_delete(TIOVXAEWBModuleObj *obj)
 }
 
 
-//DONE
 vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_object_array h3a_stats_arr, const char* target_string)
 {
     vx_status status = VX_SUCCESS;
@@ -470,7 +500,7 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
     status = vxGetStatus((vx_reference)aewbObj->node);
     if(status != VX_SUCCESS)
     {
-        TIOVX_MODULE_PRINTF("[AEWB_MODULE] Unable to create AEWB node! \n");
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB node! \n");
         return status;
     }
 
@@ -484,7 +514,6 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
     return status;
 }
 
-//DONE
 vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -504,7 +533,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
 
             if((vx_status)VX_SUCCESS == status)
             {
-                /* Export handles to get valid size information. */
+                /* Get number of entries, which should always be 1. Just for check */
                 status = tivxReferenceExportHandle(ref,
                                                 virtAddr,
                                                 size,
@@ -513,23 +542,18 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
 
                 if((vx_status)VX_SUCCESS == status)
                 {
-                    vx_int32 ctr;
-                    /* Currently the vx_image buffers are alloated in one shot for multiple planes.
-                        So if we are freeing this buffer then we need to get only the first plane
-                        pointer address but add up the all the sizes to free the entire buffer */
-                    vx_uint32 freeSize = 0;
-                    for(ctr = 0; ctr < numEntries; ctr++)
+                    if(numEntries!=1)
                     {
-                        freeSize += size[ctr];
+                        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Too many entries. numEntries should always be 1 for AEWB.");
+                        return VX_FAILURE;
                     }
+
+                    vx_uint32 freeSize = size[0];
 
                     TIOVX_MODULE_PRINTF("[AEWB-MODULE] Freeing input %d, bufq=%d, addr = 0x%016lX, size = %d \n", in, bufq, (vx_uint64)virtAddr[0], freeSize);
                     tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
 
-                    for(ctr = 0; ctr < numEntries; ctr++)
-                    {
-                        virtAddr[ctr] = NULL;
-                    }
+                    virtAddr[0] = NULL;
 
                     /* Assign NULL handles to the OpenVx objects as it will avoid
                         doing a tivxMemFree twice, once now and once during release */
@@ -555,7 +579,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
 
             if((vx_status)VX_SUCCESS == status)
             {
-                /* Export handles to get valid size information. */
+                /* Get number of entries, which should always be 1. Just for check */
                 status = tivxReferenceExportHandle(ref,
                                                 virtAddr,
                                                 size,
@@ -564,23 +588,18 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
 
                 if((vx_status)VX_SUCCESS == status)
                 {
-                    vx_int32 ctr;
-                    /* Currently the vx_image buffers are alloated in one shot for multiple planes.
-                        So if we are freeing this buffer then we need to get only the first plane
-                        pointer address but add up the all the sizes to free the entire buffer */
-                    vx_uint32 freeSize = 0;
-                    for(ctr = 0; ctr < numEntries; ctr++)
+                    if(numEntries!=1)
                     {
-                        freeSize += size[ctr];
+                        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Too many entries. numEntries should always be 1 for AEWB.");
+                        return status;
                     }
+
+                    vx_uint32 freeSize = size[0];
 
                     TIOVX_MODULE_PRINTF("[AEWB-MODULE] Freeing output %d, bufq=%d, addr = 0x%016lX, size = %d \n", in, bufq, (vx_uint64)virtAddr[0], freeSize);
                     tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
 
-                    for(ctr = 0; ctr < numEntries; ctr++)
-                    {
-                        virtAddr[ctr] = NULL;
-                    }
+                    virtAddr[0] = NULL;
 
                     /* Assign NULL handles to the OpenVx objects as it will avoid
                         doing a tivxMemFree twice, once now and once during release */
@@ -602,7 +621,6 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
     return status;
 };
 
-//DONE
 vx_status tiovx_aewb_module_add_write_output_node(vx_graph graph,TIOVXAEWBModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -629,7 +647,6 @@ vx_status tiovx_aewb_module_add_write_output_node(vx_graph graph,TIOVXAEWBModule
     return (status);
 };
 
-//DONE
 vx_status tiovx_aewb_module_send_write_output_cmd(TIOVXAEWBModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip)
 {
     vx_status status = VX_SUCCESS;
