@@ -80,7 +80,7 @@ vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName)
     sensorObj->sensor_wdr_enabled=0;
     sensorObj->num_cameras_enabled=1;
     sensorObj->ch_mask=1;
-    sensorObj->sensor_name=objName;
+    snprintf(sensorObj->sensor_name, ISS_SENSORS_MAX_NAME, "%s", objName);
     sensorObj->sensorParams.dccId=0;
 
     return status;

@@ -71,6 +71,7 @@
  *
  * @{
  */
+#include <TI/j7_imaging_aewb.h>
 
 #include "tiovx_modules_common.h"
 #include "tiovx_sensor_module.h"

@@ -63,7 +63,7 @@
 #include "tiovx_aewb_module.h"
 
 
-static vx_status tiovx_aewb_module_configure_dcc(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_configure_dcc(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
 
@@ -76,7 +76,7 @@ static vx_status tiovx_aewb_module_configure_dcc(vx_context context, AEWBObj *ae
         dcc_buff_size = appIssGetDCCSize2A(sensorObj->sensor_name, sensorObj->sensor_wdr_enabled);
         if(dcc_buff_size < 0)
         {
-            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Invalid DCC size for 2A! \n");
+            TIOVX_MODULE_ERROR("[AEWB-MODULE] Invalid DCC size for 2A! DCC size is %d \n", dcc_buff_size);
             return VX_FAILURE;
         }
         aewbObj->dcc_config = vxCreateUserDataObject(context, "dcc_2a", dcc_buff_size, NULL);
@@ -99,26 +99,27 @@ static vx_status tiovx_aewb_module_configure_dcc(vx_context context, AEWBObj *ae
             status = appIssGetDCCBuff2A(sensorObj->sensor_name, sensorObj->sensor_wdr_enabled,  dcc_buf, dcc_buff_size);
             if(status != VX_SUCCESS)
             {
-                TIOVX_MODULE_PRINTF("[AEWB-MODULE] Error getting 2A DCC buffer! \n");
+                TIOVX_MODULE_ERROR("[AEWB-MODULE] Error getting 2A DCC buffer! \n");
                 return VX_FAILURE;
             }
             vxUnmapUserDataObject(aewbObj->dcc_config, dcc_buf_map_id);
         }
         else
         {
-            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create DCC config object!\n");
+            TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create DCC config object!\n");
+            return VX_FAILURE;
         }
     }
     else
     {
         aewbObj->dcc_config = NULL;
-        printf("[AEWB-MODULE] Sensor DCC is disabled \n");
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Sensor DCC is disabled \n");
     }
 
     return status;
 }
 
-static vx_status tiovx_aewb_module_configure_aewb(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_configure_aewb(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 ch;
@@ -150,7 +151,7 @@ static vx_status tiovx_aewb_module_configure_aewb(vx_context context, AEWBObj *a
         status = vxGetStatus((vx_reference)aewbObj->config_arr);
         if(status != VX_SUCCESS)
         {
-            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB config object array! \n");
+            TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create AEWB config object array! \n");
         }
         vxReleaseUserDataObject(&config);
 
@@ -178,13 +179,13 @@ static vx_status tiovx_aewb_module_configure_aewb(vx_context context, AEWBObj *a
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB config object! \n");
+        TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create AEWB config object! \n");
     }
 
     return status;
 }
 
-static vx_status tiovx_aewb_module_create_histogram(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_create_histogram(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
 
@@ -196,7 +197,7 @@ static vx_status tiovx_aewb_module_create_histogram(vx_context context, AEWBObj 
         status = vxGetStatus((vx_reference)aewbObj->histogram_arr);
         if(status != VX_SUCCESS)
         {
-            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create Histogram object array! \n");
+            TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create Histogram object array! \n");
         }
         else
         {
@@ -206,13 +207,13 @@ static vx_status tiovx_aewb_module_create_histogram(vx_context context, AEWBObj 
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create Histogram object! \n");
+        TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create Histogram object! \n");
     }
 
     return status;
 }
 
-static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, AEWBObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 q;
@@ -234,13 +235,13 @@ static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, AEWBOb
 
     if(status == VX_SUCCESS)
     {
-        for(q = 0; q < obj->out_bufq_depth; q++)
+        for(q = 0; q < aewbObj->out_bufq_depth; q++)
         {
             aewbObj->aewb_output_arr[q] = vxCreateObjectArray(context, (vx_reference)aewb_output, sensorObj->num_cameras_enabled);
             status = vxGetStatus((vx_reference)aewbObj->aewb_output_arr[q]);
             if(status != VX_SUCCESS)
             {
-                TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB output object array! \n");
+                TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create AEWB output object array! \n");
                 break;
             }
             else
@@ -257,13 +258,13 @@ static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, AEWBOb
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB output object! \n");
+        TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create AEWB output object! \n");
     }
 
     return status;
 }
 
-static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, AEWBObj  *aewbObj, SensorObj  *sensorObj)
+static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, TIOVXAEWBModuleObj  *aewbObj, SensorObj  *sensorObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 q;
@@ -285,13 +286,13 @@ static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, AEWBObj 
 
     if(status == VX_SUCCESS)
     {
-        for(q = 0; q < obj->in_bufq_depth; q++)
+        for(q = 0; q < aewbObj->in_bufq_depth; q++)
         {
             aewbObj->aewb_input_arr[q] = vxCreateObjectArray(context, (vx_reference)aewb_input, sensorObj->num_cameras_enabled);
             status = vxGetStatus((vx_reference)aewbObj->aewb_input_arr[q]);
             if(status != VX_SUCCESS)
             {
-                TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB input object array! \n");
+                TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create AEWB input object array! \n");
                 break;
             }
             else
@@ -308,13 +309,13 @@ static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, AEWBObj 
     }
     else
     {
-        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB input object! \n");
+        TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create AEWB input object! \n");
     }
 
     return status;
 };
 
-vx_status tiovx_aewb_module_init(vx_context context, AEWBObj *aewbObj)
+vx_status tiovx_aewb_module_init(vx_context context, TIOVXAEWBModuleObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
 
@@ -351,7 +352,7 @@ vx_status tiovx_aewb_module_init(vx_context context, AEWBObj *aewbObj)
     return (status);
 }
 
-void tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
+vx_status tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 q;
@@ -389,7 +390,7 @@ void tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
     if((vx_status)VX_SUCCESS == status)
     {
         TIOVX_MODULE_PRINTF("[AEWB-MODULE] Releasing histogram array reference!\n");
-        status = xReleaseObjectArray(&aewbObj->histogram_arr);
+        status = vxReleaseObjectArray(&aewbObj->histogram_arr);
 
     }
 
@@ -407,9 +408,10 @@ void tiovx_aewb_module_deinit(TIOVXAEWBModuleObj *aewbObj)
 
         }
     }
+    return status;
 }
 
-void tiovx_aewb_module_delete(TIOVXAEWBModuleObj *obj)
+vx_status tiovx_aewb_module_delete(TIOVXAEWBModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
@@ -446,6 +448,7 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
     }
     else
     {
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Output is null!\n");
         aewb_output = NULL;
     }
 
@@ -459,6 +462,7 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
         }
         else
         {
+            TIOVX_MODULE_PRINTF("[AEWB-MODULE] Input is null!\n");
             aewb_input = NULL;
         }
     }
@@ -469,6 +473,7 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
     }
     else
     {
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Config is null!\n");
         config = NULL;
     }
 
@@ -478,7 +483,13 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
     }
     else
     {
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Histogram is null!\n");
         histogram = NULL;
+    }
+
+    if(obj->dcc_config == NULL)
+    {
+        TIOVX_MODULE_PRINTF("[AEWB-MODULE] DCC config is null!\n");
     }
 
     obj->node = tivxAewbNode(graph,
@@ -487,7 +498,7 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
                                  aewb_input,
                                  NULL,
                                  aewb_output,
-                                 aewbObj->dcc_config);
+                                 obj->dcc_config);
     if(aewb_output != NULL)
         vxReleaseUserDataObject(&aewb_output);
     if(aewb_input != NULL)
@@ -497,18 +508,18 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
     if(histogram != NULL)
         vxReleaseDistribution(&histogram);
 
-    status = vxGetStatus((vx_reference)aewbObj->node);
+    status = vxGetStatus((vx_reference)obj->node);
     if(status != VX_SUCCESS)
     {
-        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Unable to create AEWB node! \n");
+        TIOVX_MODULE_ERROR("[AEWB-MODULE] Unable to create AEWB node! \n");
         return status;
     }
 
-    vxSetNodeTarget(aewbObj->node, VX_TARGET_STRING, target_string);
-    vxSetReferenceName((vx_reference)aewbObj->node, "aewb_node");
+    vxSetNodeTarget(obj->node, VX_TARGET_STRING, target_string);
+    vxSetReferenceName((vx_reference)obj->node, "aewb_node");
 
     vx_bool replicate[] = { vx_true_e, vx_true_e, vx_true_e, vx_false_e, vx_true_e, vx_false_e};
-    vxReplicateNode(graph, aewbObj->node, replicate, 6);
+    vxReplicateNode(graph, obj->node, replicate, 6);
 
 
     return status;
@@ -544,7 +555,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
                 {
                     if(numEntries!=1)
                     {
-                        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Too many entries. numEntries should always be 1 for AEWB.");
+                        TIOVX_MODULE_ERROR("[AEWB-MODULE] Too many entries. numEntries should always be 1 for AEWB.");
                         return VX_FAILURE;
                     }
 
@@ -590,7 +601,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
                 {
                     if(numEntries!=1)
                     {
-                        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Too many entries. numEntries should always be 1 for AEWB.");
+                        TIOVX_MODULE_ERROR("[AEWB-MODULE] Too many entries. numEntries should always be 1 for AEWB.");
                         return status;
                     }
 

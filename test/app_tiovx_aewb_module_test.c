@@ -134,14 +134,19 @@ static vx_status app_init(AppObj *obj)
 
     if(status == VX_SUCCESS)
     {
+        tivxImagingLoadKernels(obj->context);
+    }
+
+    if(status == VX_SUCCESS)
+    {
         TIOVXAEWBModuleObj *aewbObj = &obj->aewbObj;
 
-        aewbObj->in_bufq_depth = APP_BUFQ_DEPTH
+        aewbObj->in_bufq_depth = APP_BUFQ_DEPTH;
         aewbObj->out_bufq_depth = APP_BUFQ_DEPTH;
 
         SensorObj *sensorObj = &aewbObj->sensorObj;
         tiovx_querry_sensor(sensorObj);
-        tiovx_init_sensor(sensorObj,"test_sensor");
+        tiovx_init_sensor(sensorObj,"IMX390-UB953_D3");
 
         /* Initialize modules */
         status = tiovx_aewb_module_init(obj->context, aewbObj);
@@ -153,9 +158,11 @@ static vx_status app_init(AppObj *obj)
 
 static void app_deinit(AppObj *obj)
 {        
-    tiovx_deinit_sensor(&obj->aewbObj->sensorObj);
+    tiovx_deinit_sensor(&obj->aewbObj.sensorObj);
 
     tiovx_aewb_module_deinit(&obj->aewbObj);
+
+    tivxImagingUnLoadKernels(obj->context);
 
     vxReleaseContext(&obj->context);
 }
@@ -184,7 +191,8 @@ static vx_status app_create_graph(AppObj *obj)
 
     graph_parameter_index = 0;
     if((vx_status)VX_SUCCESS == status)
-    {
+    {       
+
         status = add_graph_parameter_by_node_index(obj->graph, obj->aewbObj.node, 2);
 
         obj->aewbObj.input_graph_parameter_index = graph_parameter_index;
@@ -238,7 +246,6 @@ vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *
     vx_status status = VX_SUCCESS;
 
     void      *buf_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
-    vx_uint32  buf_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
 
     vx_size data_size;
     
@@ -248,7 +255,7 @@ vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *
     {
         void *pBase = tivxMemAlloc(data_size, TIVX_MEM_EXTERNAL);
         virtAddr[0] = (void *)pBase;
-        sizes[0] = buf_sizes[0];
+        sizes[0] = data_size;
     }
 
     return status;
