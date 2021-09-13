@@ -780,7 +780,12 @@ vx_status readTensor(char* file_name, vx_tensor tensor_o)
 
         if(VX_SUCCESS == status)
         {
-            fread(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth, fp);
+            int32_t size = fread(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth, fp);
+            if (size != (tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth))
+            {
+                APP_ERROR("fread() size %d not matching with expected size! %d \n", size, (int32_t)(tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth));
+                status = VX_FAILURE;
+            }
 
             tivxUnmapTensorPatch(tensor_o, map_id);
         }
@@ -846,7 +851,12 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
 
         if(VX_SUCCESS == status)
         {
-            fwrite(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth, fp);
+            int32_t size = fwrite(data_ptr, 1, tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth, fp);
+            if (size != (tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth))
+            {
+                APP_ERROR("fwrite() size %d not matching with expected size! %d \n", size, (int32_t)(tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * bit_depth));
+                status = VX_FAILURE;
+            }
 
             tivxUnmapTensorPatch(tensor_o, map_id);
         }
