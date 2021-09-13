@@ -9,8 +9,7 @@ add_library(${PROJECT_NAME} SHARED
             tiovx_multi_scaler_module.c
             tiovx_img_mosaic_module.c
             tiovx_dl_pre_proc_module.c
-            tiovx_dl_color_blend_module.c
-            tiovx_dl_draw_box_module.c)
+            tiovx_dl_color_blend_module.c)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/lib/${PROJECT_NAME})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../include DESTINATION /usr/include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
