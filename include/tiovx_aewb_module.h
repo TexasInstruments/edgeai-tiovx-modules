@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2020 Texas Instruments Incorporated
+ * Copyright (c) 2021 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -63,11 +63,11 @@
 #define _TIOVX_AEWB_MODULE
 
 /**
- * \defgroup group_vision_apps_modules_aewb AEWB Node Module
+ * \defgroup group_tiovx_modules_aewb AEWB Node Module
  *
  * \brief This section contains module APIs for the AEWB node tivxAewbNode
  *
- * \ingroup group_vision_apps_modules
+ * \ingroup group_tiovx_modules
  *
  * @{
  */
@@ -83,35 +83,37 @@
  */
 typedef struct {
     /*! AEWB node object */
-    vx_node node; //done
+    vx_node node;
 
     /*! AEWB node config param object array */
-    vx_object_array config_arr; //done
+    vx_object_array config_arr;
 
     /*! AEWB node params structure to initialize config object */
-    tivx_aewb_config_t params; //done
+    tivx_aewb_config_t params;
 
     /*! AEWB DCC config user data object */
-    vx_user_data_object dcc_config;//done
+    vx_user_data_object dcc_config;
 
     /*! AEWB histogram object array */
-    vx_object_array histogram_arr;//done
+    vx_object_array histogram_arr;
 
     /*! AEWB output object array */
-    vx_object_array aewb_output_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];//done
+    vx_object_array aewb_output_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
 
+    /*! Handle to first instance of AEWB output object array */
     vx_user_data_object aewb_output_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
-   
-    /*! AEWB input object array */
-    vx_object_array aewb_input_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];//done
 
+    /*! AEWB input object array */
+    vx_object_array aewb_input_arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
+
+    /*! Handle to first instance of AEWB input object array */
     vx_user_data_object aewb_input_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
 
     /*! Bufq depth of output */
-    vx_int32 out_bufq_depth;//done
+    vx_int32 out_bufq_depth;
 
     /*! Bufq depth of input */
-    vx_int32 in_bufq_depth;//done
+    vx_int32 in_bufq_depth;
 
     /*! AEWB node graph parameter index of output */
     vx_int32 output_graph_parameter_index;
@@ -123,12 +125,12 @@ typedef struct {
     SensorObj sensorObj;
 
     /* These params are needed only for writing intermediate output */
-    vx_array file_path;//done
-    vx_array file_prefix;//done
-    vx_node write_node;//done
-    vx_user_data_object write_cmd;//done
+    vx_array file_path;
+    vx_array file_prefix;
+    vx_node write_node;
+    vx_user_data_object write_cmd;
 
-    vx_char output_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];//done
+    vx_char output_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
 
 }TIOVXAEWBModuleObj;
 

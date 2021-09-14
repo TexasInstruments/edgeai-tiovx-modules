@@ -131,6 +131,11 @@ vx_status delete_image_buffers(ImgObj *imgObj, void *virtAddr[][TIOVX_MODULES_MA
 vx_status assign_image_buffers(ImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 vx_status release_image_buffers(ImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 
+vx_status allocate_single_tensor_buffer(vx_tensor tensor, void *virtAddr[], vx_uint32 sizes[]);
+vx_status delete_single_tensor_buffer(vx_tensor tensor, void *virtAddr[], vx_uint32 sizes[]);
+vx_status assign_single_tensor_buffer(vx_tensor tensor, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs);
+vx_status release_single_tensor_buffer(vx_tensor tensor, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs);
+
 vx_status allocate_tensor_buffers(TensorObj *tensorObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
 vx_status delete_tensor_buffers(TensorObj *tensorObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
 vx_status assign_tensor_buffers(TensorObj *tensorObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
@@ -142,5 +147,15 @@ vx_status create_tensor_mask(vx_tensor tensor_o, vx_int32 num_classes);
 
 vx_status readImage(char* file_name, vx_image img);
 vx_status writeImage(char* file_name, vx_image img);
+
+vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[]);
+vx_status delete_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[]);
+vx_status assign_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs);
+vx_status release_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs);
+
+vx_status allocate_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES], vx_int32 bufq_depth);
+vx_status delete_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES],  vx_int32 bufq_depth);
+vx_status assign_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
+vx_status release_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 
 #endif

@@ -1160,3 +1160,250 @@ vx_status create_tensor_mask(vx_tensor tensor_o, vx_int32 num_classes)
 
     return status;
 }
+
+vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
+{
+    vx_status status = VX_SUCCESS;
+
+    void      *buf_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+
+    vx_size data_size;
+
+    status = vxQueryUserDataObject(user_data, VX_USER_DATA_OBJECT_SIZE, &data_size, sizeof(data_size));
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void *pBase = tivxMemAlloc(data_size, TIVX_MEM_EXTERNAL);
+        virtAddr[0] = (void *)pBase;
+        sizes[0] = data_size;
+    }
+
+    return status;
+}
+
+vx_status delete_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_size data_size;
+
+    status = vxQueryUserDataObject(user_data, VX_USER_DATA_OBJECT_SIZE, &data_size, sizeof(data_size));
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+
+        tivxMemFree(virtAddr[0], data_size, TIVX_MEM_EXTERNAL);
+
+        virtAddr[0] = NULL;
+        sizes[0] = 0;
+    }
+
+    return status;
+};
+
+vx_status assign_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void * addr[4];
+        vx_int32 bufsize[4];
+        vx_int32 p;
+
+        for(p = 0; p < num_bufs; p++)
+        {
+            addr[p] = virtAddr[p];
+            bufsize[p] = sizes[p];
+        }
+
+        status = tivxReferenceImportHandle((vx_reference)user_data,
+                                        (const void **)addr,
+                                        (const uint32_t *)bufsize,
+                                        num_bufs);
+    }
+
+    return status;
+};
+
+vx_status release_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_bufs)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void * addr[4];
+        vx_int32 bufsize[4];
+        vx_int32 p;
+
+        for(p = 0; p < num_bufs; p++)
+        {
+            addr[p] = NULL;
+            bufsize[p] = sizes[p];
+        }
+
+        /* Assign NULL handles to the OpenVx objects as it will avoid
+            doing a tivxMemFree twice, once now and once during release */
+        status = tivxReferenceImportHandle((vx_reference)user_data,
+                                            (const void **)addr,
+                                            (const uint32_t *)bufsize,
+                                            num_bufs);
+    }
+
+    return status;
+};
+
+vx_status allocate_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES], vx_int32 bufq_depth)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_size num_ch;
+    vx_int32 bufq, ch;
+
+    APP_PRINTF("Allocating User Data Buffers \n");
+
+    for(bufq = 0; bufq < bufq_depth; bufq++)
+    {
+        vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            for(ch = 0; ch < num_ch; ch++)
+            {
+                vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+                if((vx_status)VX_SUCCESS == status)
+                {
+                    status = allocate_single_user_data_buffer
+                            (
+                                user_data,
+                                &virtAddr[bufq][ch],
+                                &sizes[bufq][ch]
+                            );
+                }
+
+                vxReleaseUserDataObject(&user_data);
+
+                APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[bufq][ch], sizes[bufq][ch]);
+
+                if((vx_status)VX_SUCCESS != status)
+                {
+                    APP_PRINTF("Unable to allocate single user data buffer!\n");
+                    break;
+                }
+            }
+        }
+    }
+
+    return status;
+}
+
+vx_status delete_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES],  vx_int32 bufq_depth)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 bufq, ch;
+    vx_size num_ch;
+
+    APP_PRINTF("Deleting User Data Buffers \n");
+    for(bufq = 0; bufq < bufq_depth; bufq++)
+    {
+        vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        for(ch = 0; ch < num_ch; ch++)
+        {
+            vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+            APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[bufq][ch], sizes[bufq][ch]);
+
+            if((vx_status)VX_SUCCESS == status)
+            {
+                status = delete_single_user_data_buffer
+                        (
+                            user_data,
+                            &virtAddr[bufq][ch],
+                            &sizes[bufq][ch]
+                        );
+
+                if((vx_status)VX_SUCCESS != status)
+                {
+                    APP_PRINTF("Unable to delete single user data buffer!\n");
+                    break;
+                }
+            }
+
+            vxReleaseUserDataObject(&user_data);
+        }
+    }
+
+    return status;
+}
+
+vx_status assign_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch;
+    vx_size num_ch;
+
+    vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Assigning User Data Buffers \n");
+
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+        APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[ch], sizes[ch]);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = assign_single_user_data_buffer(user_data, &virtAddr[ch], &sizes[ch], 1);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to assign single user data buffer!\n");
+            break;
+        }
+
+        vxReleaseUserDataObject(&user_data);
+    }
+
+    return status;
+}
+
+vx_status release_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch, ctr;
+    vx_size num_ch;
+
+    vxQueryObjectArray(obj_arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Releasing User Data Buffers \n");
+
+    ctr = 0;
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        vx_user_data_object user_data = (vx_user_data_object)vxGetObjectArrayItem(obj_arr[bufq], ch);
+
+        APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, ch, (unsigned long int)virtAddr[ch], sizes[ch]);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = release_single_user_data_buffer(user_data, &virtAddr[ctr], &sizes[ctr], 1);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to assign single user data buffer!\n");
+            break;
+        }
+
+        vxReleaseUserDataObject(&user_data);
+    }
+
+    return status;
+}
