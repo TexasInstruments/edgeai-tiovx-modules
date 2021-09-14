@@ -41,6 +41,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     /usr/include/processor_sdk/vision_apps/apps/basic_demos/app_rtos/rtos_linux/mpu1
                     /usr/include/processor_sdk/ivision
                     /usr/include/processor_sdk/imaging
+                    /usr/include/processor_sdk/imaging/kernels/include
                     /usr/include/processor_sdk/tidl_j7/ti_dl/inc
                     /usr/include/processor_sdk/tiovx/include
                     /usr/include/processor_sdk/tiovx/kernels/include

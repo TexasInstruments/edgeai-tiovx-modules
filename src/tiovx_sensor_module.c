@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2017 Texas Instruments Incorporated
+ * Copyright (c) 2020 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -60,115 +60,33 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <stdint.h>
-#include <TI/tivx.h>
-#include <app_init.h>
+#include "tiovx_sensor_module.h"
 
-#define APP_MODULES_TEST_MULTI_SCALER (1)
-#define APP_MODULES_TEST_COLOR_CONVERT (1)
-#define APP_MODULES_TEST_IMG_MOSAIC (1)
-#define APP_MODULES_TEST_PRE_PROC (1)
-#define APP_MODULES_TEST_COLOR_BLEND (1)
-#define APP_MODULES_TEST_AEWB (1)
+static char availableSensorNames[ISS_SENSORS_MAX_SUPPORTED_SENSOR][ISS_SENSORS_MAX_NAME];
 
-
-int32_t appInit()
+vx_status tiovx_querry_sensor(SensorObj *sensorObj)
 {
-    int32_t status = 0;
+    vx_status status = VX_SUCCESS;
 
-    status = appCommonInit();
-
-    if(status==0)
-    {
-        tivxInit();
-        tivxHostInit();
-    }
-    return status;
+    return (status);
 }
 
-int32_t appDeInit()
+vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName)
 {
-    int32_t status = 0;
-
-    tivxHostDeInit();
-    tivxDeInit();
-    appCommonDeInit();
+    vx_status status = VX_SUCCESS;
+    sensorObj->sensor_dcc_enabled=0;
+    sensorObj->sensor_exp_control_enabled=0;
+    sensorObj->sensor_gain_control_enabled=0;
+    sensorObj->sensor_wdr_enabled=0;
+    sensorObj->num_cameras_enabled=1;
+    sensorObj->ch_mask=1;
+    snprintf(sensorObj->sensor_name, ISS_SENSORS_MAX_NAME, "%s", objName);
+    sensorObj->sensorParams.dccId=0;
 
     return status;
 }
 
-int main(int argc, char *argv[])
+void tiovx_deinit_sensor(SensorObj *sensorObj)
 {
-    int status = 0;
-
-    status = appInit();
-
-#if (APP_MODULES_TEST_MULTI_SCALER)
-    if(status==0)
-    {
-        printf("Running multi-scaler module test\n");
-        int app_modules_scaler_test(int argc, char* argv[]);
-
-        status = app_modules_scaler_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_COLOR_CONVERT)
-    if(status==0)
-    {
-        printf("Running color convert module test\n");
-        int app_modules_color_convert_test(int argc, char* argv[]);
-
-        status = app_modules_color_convert_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_IMG_MOSAIC)
-    if(status==0)
-    {
-        printf("Running image mosaic module test\n");
-        int app_modules_img_mosaic_test(int argc, char* argv[]);
-
-        status = app_modules_img_mosaic_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_PRE_PROC)
-    if(status==0)
-    {
-        printf("Running DL pre-proc module test\n");
-        int app_modules_dl_pre_proc_test(int argc, char* argv[]);
-
-        status = app_modules_dl_pre_proc_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_COLOR_BLEND)
-    if(status==0)
-    {
-        printf("Running DL color-blend module test\n");
-        int app_modules_dl_color_blend_test(int argc, char* argv[]);
-
-        status = app_modules_dl_color_blend_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_AEWB) 
-    if(status==0)
-    {
-        printf("Running AEWB module test\n");
-        int app_modules_aewb_test(int argc, char* argv[]);
-
-        status = app_modules_aewb_test(argc, argv);
-    }
-#endif
-
-    printf("All tests complete!\n");
-
-    appDeInit();
-
-    return status;
+    return;
 }
