@@ -121,8 +121,8 @@ typedef struct {
     /*! AEWB node graph parameter index of input */
     vx_int32 input_graph_parameter_index;
 
-    /*! AEWB sensor object */
-    SensorObj sensorObj;
+    /*! Pointer to sensor object */
+    SensorObj *sensorObj;
 
     /* These params are needed only for writing intermediate output */
     vx_array file_path;

@@ -63,9 +63,11 @@
 #include "tiovx_aewb_module.h"
 
 
-static vx_status tiovx_aewb_module_configure_dcc(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_configure_dcc(vx_context context, TIOVXAEWBModuleObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
+
+    SensorObj *sensorObj = aewbObj->sensorObj;
 
     if(sensorObj->sensor_dcc_enabled)
     {
@@ -119,11 +121,11 @@ static vx_status tiovx_aewb_module_configure_dcc(vx_context context, TIOVXAEWBMo
     return status;
 }
 
-static vx_status tiovx_aewb_module_configure_aewb(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_configure_aewb(vx_context context, TIOVXAEWBModuleObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
-    vx_int32 ch;
-    vx_int32 ch_mask;
+
+    SensorObj *sensorObj = aewbObj->sensorObj;
 
     aewbObj->params.sensor_dcc_id       = sensorObj->sensorParams.dccId;
     aewbObj->params.sensor_img_format   = 0;
@@ -160,17 +162,17 @@ static vx_status tiovx_aewb_module_configure_aewb(vx_context context, TIOVXAEWBM
             vx_uint32 array_obj_index = 0;
             vxSetReferenceName((vx_reference)aewbObj->config_arr, "aewb_node_config_arr");
 
-            ch = 0;
-            ch_mask = sensorObj->ch_mask;
+            vx_uint32 ch_mask = sensorObj->ch_mask;
+            vx_int32 ch = 0;
             while(ch_mask > 0)
             {
                 if(ch_mask & 0x1)
                 {
                     vx_user_data_object config = (vx_user_data_object)vxGetObjectArrayItem(aewbObj->config_arr, array_obj_index);
                     array_obj_index++;
-	                aewbObj->params.channel_id = ch;
-	                vxCopyUserDataObject(config, 0, sizeof(tivx_aewb_config_t), &aewbObj->params, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
-	                vxReleaseUserDataObject(&config);
+                    aewbObj->params.channel_id = ch;
+                    vxCopyUserDataObject(config, 0, sizeof(tivx_aewb_config_t), &aewbObj->params, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+                    vxReleaseUserDataObject(&config);
                 }
                 ch++;
                 ch_mask = ch_mask >> 1;
@@ -185,9 +187,11 @@ static vx_status tiovx_aewb_module_configure_aewb(vx_context context, TIOVXAEWBM
     return status;
 }
 
-static vx_status tiovx_aewb_module_create_histogram(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_create_histogram(vx_context context, TIOVXAEWBModuleObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
+
+    SensorObj *sensorObj = aewbObj->sensorObj;
 
     vx_distribution histogram = vxCreateDistribution(context, 256, 0, 256);
     status = vxGetStatus((vx_reference)histogram);
@@ -213,10 +217,12 @@ static vx_status tiovx_aewb_module_create_histogram(vx_context context, TIOVXAEW
     return status;
 }
 
-static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, TIOVXAEWBModuleObj *aewbObj, SensorObj *sensorObj)
+static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, TIOVXAEWBModuleObj *aewbObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 q;
+
+    SensorObj *sensorObj = aewbObj->sensorObj;
 
     if(aewbObj->out_bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
     {
@@ -264,10 +270,12 @@ static vx_status tiovx_aewb_module_create_aewb_output(vx_context context, TIOVXA
     return status;
 }
 
-static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, TIOVXAEWBModuleObj  *aewbObj, SensorObj  *sensorObj)
+static vx_status tiovx_aewb_module_create_h3a_input(vx_context context, TIOVXAEWBModuleObj  *aewbObj)
 {
     vx_status status = VX_SUCCESS;
     vx_int32 q;
+
+    SensorObj *sensorObj = aewbObj->sensorObj;
 
     if(aewbObj->in_bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
     {
@@ -319,35 +327,36 @@ vx_status tiovx_aewb_module_init(vx_context context, TIOVXAEWBModuleObj *aewbObj
 {
     vx_status status = VX_SUCCESS;
 
-    SensorObj *sensorObj;
-    sensorObj = &aewbObj->sensorObj;
-
-    if(status == VX_SUCCESS)
+    if(aewbObj->sensorObj == NULL)
     {
-        status = tiovx_aewb_module_configure_dcc(context, aewbObj, sensorObj);
+        TIOVX_MODULE_ERROR("Sensor Object handle is NULL!");
+        status = VX_FAILURE;
     }
 
     if(status == VX_SUCCESS)
     {
-        status = tiovx_aewb_module_create_h3a_input(context, aewbObj, sensorObj);
+        status = tiovx_aewb_module_configure_dcc(context, aewbObj);
     }
 
     if(status == VX_SUCCESS)
     {
-        status = tiovx_aewb_module_configure_aewb(context, aewbObj, sensorObj);
+        status = tiovx_aewb_module_create_h3a_input(context, aewbObj);
     }
 
     if(status == VX_SUCCESS)
     {
-        status = tiovx_aewb_module_create_histogram(context, aewbObj, sensorObj);
+        status = tiovx_aewb_module_configure_aewb(context, aewbObj);
     }
 
     if(status == VX_SUCCESS)
     {
-        status = tiovx_aewb_module_create_aewb_output(context, aewbObj, sensorObj);
+        status = tiovx_aewb_module_create_histogram(context, aewbObj);
     }
 
-
+    if(status == VX_SUCCESS)
+    {
+        status = tiovx_aewb_module_create_aewb_output(context, aewbObj);
+    }
 
     return (status);
 }
@@ -499,6 +508,7 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
                                  NULL,
                                  aewb_output,
                                  obj->dcc_config);
+
     if(aewb_output != NULL)
         vxReleaseUserDataObject(&aewb_output);
     if(aewb_input != NULL)
@@ -520,7 +530,6 @@ vx_status tiovx_aewb_module_create(vx_graph graph, TIOVXAEWBModuleObj *obj, vx_o
 
     vx_bool replicate[] = { vx_true_e, vx_true_e, vx_true_e, vx_false_e, vx_true_e, vx_false_e};
     vxReplicateNode(graph, obj->node, replicate, 6);
-
 
     return status;
 }
@@ -579,7 +588,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
     }
 
 
-    
+
     /* Free output */
     for(bufq = 0; bufq < obj->out_bufq_depth; bufq++)
     {
