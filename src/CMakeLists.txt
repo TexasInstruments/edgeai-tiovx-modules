@@ -10,7 +10,6 @@ add_library(${PROJECT_NAME} SHARED
             tiovx_img_mosaic_module.c
             tiovx_dl_pre_proc_module.c
             tiovx_dl_color_blend_module.c
-            tiovx_dl_draw_box_module.c
             tiovx_sensor_module.c
             tiovx_aewb_module.c)
 
