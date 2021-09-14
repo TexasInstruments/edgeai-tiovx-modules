@@ -76,6 +76,8 @@ typedef struct {
 
     vx_graph   graph;
 
+    SensorObj  sensorObj;
+
     TIOVXAEWBModuleObj  aewbObj;
 
 } AppObj;
@@ -142,11 +144,12 @@ static vx_status app_init(AppObj *obj)
         aewbObj->in_bufq_depth = APP_BUFQ_DEPTH;
         aewbObj->out_bufq_depth = APP_BUFQ_DEPTH;
 
-        SensorObj *sensorObj = &aewbObj->sensorObj;
-        tiovx_querry_sensor(sensorObj);
-        tiovx_init_sensor(sensorObj,"IMX219-RPI-V2");
+        tiovx_querry_sensor(&obj->sensorObj);
+        tiovx_init_sensor(&obj->sensorObj,"IMX219-RPI-V2");
 
         /* Initialize modules */
+        aewbObj->sensorObj = &obj->sensorObj;
+
         status = tiovx_aewb_module_init(obj->context, aewbObj);
         APP_PRINTF("AEWB Init Done! \n");
     }
