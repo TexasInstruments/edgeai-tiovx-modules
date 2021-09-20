@@ -11,7 +11,8 @@ add_library(${PROJECT_NAME} SHARED
             tiovx_dl_pre_proc_module.c
             tiovx_dl_color_blend_module.c
             tiovx_sensor_module.c
-            tiovx_aewb_module.c)
+            tiovx_aewb_module.c
+            tiovx_ldc_module.c)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/lib/${PROJECT_NAME})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../include DESTINATION /usr/include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
