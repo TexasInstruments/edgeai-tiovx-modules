@@ -61,13 +61,15 @@
  */
 
 #include "tiovx_ldc_module.h"
-#include "ldc_lut_1920x1080.h"
+#include "tiovx_ldc_module_lut_1920x1080.h"
 
-static uint8_t  g_ldc_lut[] = LDC_LUT_1920_1080;
+static uint8_t  g_tiovx_ldc_module_lut[] = LDC_LUT_1920_1080;
 
-static vx_status configure_dcc_params(vx_context context, TIOVXLDCModuleObj *ldcObj, SensorObj *sensorObj)
+static vx_status tiovx_ldc_module_configure_dcc_params(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
+
+    SensorObj *sensorObj = obj->sensorObj;
 
     if(sensorObj->sensor_dcc_enabled)
     {
@@ -79,15 +81,15 @@ static vx_status configure_dcc_params(vx_context context, TIOVXLDCModuleObj *ldc
 
         if (dcc_buff_size > 0)
         {
-            ldcObj->dcc_config = vxCreateUserDataObject(context, "dcc_ldc", dcc_buff_size, NULL );
-            status = vxGetStatus((vx_reference)ldcObj->dcc_config);
+            obj->dcc_config = vxCreateUserDataObject(context, "dcc_ldc", dcc_buff_size, NULL );
+            status = vxGetStatus((vx_reference)obj->dcc_config);
 
-            if(status == VX_SUCCESS)
+            if((vx_status)VX_SUCCESS == status)
             {
-                vxSetReferenceName((vx_reference)ldcObj->dcc_config, "ldc_node_dcc_config");
+                vxSetReferenceName((vx_reference)obj->dcc_config, "ldc_node_dcc_config");
 
                 vxMapUserDataObject(
-                        ldcObj->dcc_config, 0,
+                        obj->dcc_config, 0,
                         dcc_buff_size,
                         &dcc_buf_map_id,
                         (void **)&dcc_buf,
@@ -99,7 +101,7 @@ static vx_status configure_dcc_params(vx_context context, TIOVXLDCModuleObj *ldc
                 {
                     TIOVX_MODULE_ERROR("[LDC-MODULE] Error getting DCC buffer \n");
                 }
-                vxUnmapUserDataObject(ldcObj->dcc_config, dcc_buf_map_id);
+                vxUnmapUserDataObject(obj->dcc_config, dcc_buf_map_id);
             }
             else
             {
@@ -109,29 +111,31 @@ static vx_status configure_dcc_params(vx_context context, TIOVXLDCModuleObj *ldc
     }
     else
     {
-        ldcObj->dcc_config = NULL;
+        obj->dcc_config = NULL;
     }
 
     return status;
 }
-static vx_status configure_mesh_params(vx_context context, TIOVXLDCModuleObj *ldcObj, SensorObj *sensorObj)
+static vx_status tiovx_ldc_module_configure_mesh_params(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
+
+    SensorObj *sensorObj = obj->sensorObj;
 
     vx_uint32 table_width_ds, table_height_ds;
     vx_imagepatch_addressing_t image_addr;
     vx_rectangle_t rect;
 
-    table_width_ds = (((ldcObj->table_width / (1 << ldcObj->ds_factor)) + 1u) + 15u) & (~15u);
-    table_height_ds = ((ldcObj->table_height / (1 << ldcObj->ds_factor)) + 1u);
+    table_width_ds = (((obj->table_width / (1 << obj->ds_factor)) + 1u) + 15u) & (~15u);
+    table_height_ds = ((obj->table_height / (1 << obj->ds_factor)) + 1u);
 
     /* Mesh Image */
-    ldcObj->mesh_img = vxCreateImage(context, table_width_ds, table_height_ds, VX_DF_IMAGE_U32);
-    status = vxGetStatus((vx_reference)ldcObj->mesh_img);
+    obj->mesh_img = vxCreateImage(context, table_width_ds, table_height_ds, VX_DF_IMAGE_U32);
+    status = vxGetStatus((vx_reference)obj->mesh_img);
 
-    if(status == VX_SUCCESS)
+    if((vx_status)VX_SUCCESS == status)
     {
-        vxSetReferenceName((vx_reference)ldcObj->mesh_img, "ldc_node_mesh_img");
+        vxSetReferenceName((vx_reference)obj->mesh_img, "ldc_node_mesh_img");
 
         /* Copy Mesh table */
         rect.start_x = 0;
@@ -144,33 +148,33 @@ static vx_status configure_mesh_params(vx_context context, TIOVXLDCModuleObj *ld
         image_addr.stride_x = 4u;
         image_addr.stride_y = table_width_ds * 4u;
 
-        status = vxCopyImagePatch(ldcObj->mesh_img,
+        status = vxCopyImagePatch(obj->mesh_img,
                                 &rect, 0,
                                 &image_addr,
-                                g_ldc_lut,
+                                g_tiovx_ldc_module_lut,
                                 VX_WRITE_ONLY,
                                 VX_MEMORY_TYPE_HOST);
         if (status == VX_SUCCESS)
         {
             /* Mesh Parameters */
-            memset(&ldcObj->mesh_params, 0, sizeof(tivx_vpac_ldc_mesh_params_t));
+            memset(&obj->mesh_params, 0, sizeof(tivx_vpac_ldc_mesh_params_t));
 
-            tivx_vpac_ldc_mesh_params_init(&ldcObj->mesh_params);
+            tivx_vpac_ldc_mesh_params_init(&obj->mesh_params);
 
-            ldcObj->mesh_params.mesh_frame_width  = ldcObj->table_width;
-            ldcObj->mesh_params.mesh_frame_height = ldcObj->table_height;
-            ldcObj->mesh_params.subsample_factor  = ldcObj->ds_factor;
+            obj->mesh_params.mesh_frame_width  = obj->table_width;
+            obj->mesh_params.mesh_frame_height = obj->table_height;
+            obj->mesh_params.subsample_factor  = obj->ds_factor;
 
-            ldcObj->mesh_config = vxCreateUserDataObject(context, "tivx_vpac_ldc_mesh_params_t", sizeof(tivx_vpac_ldc_mesh_params_t), NULL);
-            status = vxGetStatus((vx_reference)ldcObj->mesh_config);
+            obj->mesh_config = vxCreateUserDataObject(context, "tivx_vpac_ldc_mesh_params_t", sizeof(tivx_vpac_ldc_mesh_params_t), NULL);
+            status = vxGetStatus((vx_reference)obj->mesh_config);
 
-            if(status == VX_SUCCESS)
+            if((vx_status)VX_SUCCESS == status)
             {
-                vxSetReferenceName((vx_reference)ldcObj->mesh_config, "ldc_node_mesh_config");
+                vxSetReferenceName((vx_reference)obj->mesh_config, "ldc_node_mesh_config");
 
-                status = vxCopyUserDataObject(ldcObj->mesh_config, 0,
+                status = vxCopyUserDataObject(obj->mesh_config, 0,
                                     sizeof(tivx_vpac_ldc_mesh_params_t),
-                                    &ldcObj->mesh_params,
+                                    &obj->mesh_params,
                                     VX_WRITE_ONLY,
                                     VX_MEMORY_TYPE_HOST);
                 if(status != VX_SUCCESS)
@@ -196,25 +200,27 @@ static vx_status configure_mesh_params(vx_context context, TIOVXLDCModuleObj *ld
     return status;
 }
 
-static vx_status configure_region_params(vx_context context, TIOVXLDCModuleObj *ldcObj, SensorObj *sensorObj)
+static vx_status tiovx_ldc_module_configure_region_params(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
+    SensorObj *sensorObj = obj->sensorObj;
+
     /* Block Size parameters */
-    ldcObj->region_params.out_block_width  = LDC_BLOCK_WIDTH;
-    ldcObj->region_params.out_block_height = LDC_BLOCK_HEIGHT;
-    ldcObj->region_params.pixel_pad        = LDC_PIXEL_PAD;
+    obj->region_params.out_block_width  = LDC_BLOCK_WIDTH;
+    obj->region_params.out_block_height = LDC_BLOCK_HEIGHT;
+    obj->region_params.pixel_pad        = LDC_PIXEL_PAD;
 
-    ldcObj->region_config = vxCreateUserDataObject(context, "tivx_vpac_ldc_region_params_t", sizeof(tivx_vpac_ldc_region_params_t),  NULL);
-    status = vxGetStatus((vx_reference)ldcObj->region_config);
+    obj->region_config = vxCreateUserDataObject(context, "tivx_vpac_ldc_region_params_t", sizeof(tivx_vpac_ldc_region_params_t),  NULL);
+    status = vxGetStatus((vx_reference)obj->region_config);
 
-    if(status == VX_SUCCESS)
+    if((vx_status)VX_SUCCESS == status)
     {
-        vxSetReferenceName((vx_reference)ldcObj->region_config, "ldc_node_region_config");
+        vxSetReferenceName((vx_reference)obj->region_config, "ldc_node_region_config");
 
-        status = vxCopyUserDataObject(ldcObj->region_config, 0,
+        status = vxCopyUserDataObject(obj->region_config, 0,
                             sizeof(tivx_vpac_ldc_region_params_t),
-                            &ldcObj->region_params,
+                            &obj->region_params,
                             VX_WRITE_ONLY,
                             VX_MEMORY_TYPE_HOST);
         if(status != VX_SUCCESS)
@@ -230,25 +236,27 @@ static vx_status configure_region_params(vx_context context, TIOVXLDCModuleObj *
     return status;
 }
 
-static vx_status configure_ldc_params(vx_context context, TIOVXLDCModuleObj *ldcObj, SensorObj *sensorObj)
+static vx_status tiovx_ldc_module_configure_ldc_params(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
+    SensorObj *sensorObj = obj->sensorObj;
+
     /* LDC Configuration */
-    tivx_vpac_ldc_params_init(&ldcObj->params);
-    ldcObj->params.luma_interpolation_type = 1;
-    ldcObj->params.dcc_camera_id = sensorObj->sensorParams.dccId;
+    tivx_vpac_ldc_params_init(&obj->params);
+    obj->params.luma_interpolation_type = 1;
+    obj->params.dcc_camera_id = sensorObj->sensorParams.dccId;
 
-    ldcObj->config = vxCreateUserDataObject(context, "tivx_vpac_ldc_params_t", sizeof(tivx_vpac_ldc_params_t), NULL);
-    status = vxGetStatus((vx_reference)ldcObj->config);
+    obj->config = vxCreateUserDataObject(context, "tivx_vpac_ldc_params_t", sizeof(tivx_vpac_ldc_params_t), NULL);
+    status = vxGetStatus((vx_reference)obj->config);
 
-    if(status == VX_SUCCESS)
+    if((vx_status)VX_SUCCESS == status)
     {
-        vxSetReferenceName((vx_reference)ldcObj->config, "ldc_node_config");
+        vxSetReferenceName((vx_reference)obj->config, "ldc_node_config");
 
-        status = vxCopyUserDataObject(ldcObj->config, 0,
+        status = vxCopyUserDataObject(obj->config, 0,
                             sizeof(tivx_vpac_ldc_params_t),
-                            &ldcObj->params,
+                            &obj->params,
                             VX_WRITE_ONLY,
                             VX_MEMORY_TYPE_HOST);
         if(status != VX_SUCCESS)
@@ -264,158 +272,370 @@ static vx_status configure_ldc_params(vx_context context, TIOVXLDCModuleObj *ldc
     return status;
 }
 
-static vx_status create_ldc_outputs(vx_context context, TIOVXLDCModuleObj *ldcObj, SensorObj *sensorObj)
+static vx_status tiovx_ldc_module_create_input(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    /* LDC Output image in NV12 format */
-    vx_image output_img = vxCreateImage(context, ldcObj->table_width, ldcObj->table_height, VX_DF_IMAGE_NV12);
-    status = vxGetStatus((vx_reference)output_img);
-    if(status == VX_SUCCESS)
-    {
-        ldcObj->output_arr = vxCreateObjectArray(context, (vx_reference)output_img, sensorObj->num_cameras_enabled);
-        vxReleaseImage(&output_img);
+    SensorObj *sensorObj = obj->sensorObj;
 
-        status = vxGetStatus((vx_reference)ldcObj->output_arr);
-        if(status != VX_SUCCESS)
+    vx_image in_img;
+    vx_int32 buf;
+
+    if(obj->input.bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
+    {
+        TIOVX_MODULE_ERROR("[LDC-MODULE] Input buffer queue depth %d greater than max supported %d!\n", obj->input.bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
+        return VX_FAILURE;
+    }
+
+    for(buf = 0; buf < TIOVX_MODULES_MAX_BUFQ_DEPTH; buf++)
+    {
+        obj->input.arr[buf]  = NULL;
+        obj->input.image_handle[buf]  = NULL;
+    }
+
+    in_img  = vxCreateImage(context, obj->input.width, obj->input.height, obj->input.color_format);
+    status = vxGetStatus((vx_reference)in_img);
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        for(buf = 0; buf < obj->input.bufq_depth; buf++)
         {
-            TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create output image array! \n");
+            obj->input.arr[buf]  = vxCreateObjectArray(context, (vx_reference)in_img, sensorObj->num_cameras_enabled);
+
+            status = vxGetStatus((vx_reference)obj->input.arr[buf]);
+            if(status != VX_SUCCESS)
+            {
+                TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create input array! \n");
+                break;
+            }
+            obj->input.image_handle[buf] = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->input.arr[buf], 0);
         }
-        else
-        {
-            vxSetReferenceName((vx_reference)ldcObj->output_arr, "ldc_node_output_arr");
-        }
+
+        vxReleaseImage(&in_img);
     }
     else
     {
-        TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create output image! \n");
-    }
-
-    if(ldcObj->en_out_ldc_write == 1)
-    {
-        char file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
-        char file_prefix[TIVX_FILEIO_FILE_PREFIX_LENGTH];
-
-        strcpy(file_path, ldcObj->output_file_path);
-        ldcObj->file_path   = vxCreateArray(context, VX_TYPE_UINT8, TIVX_FILEIO_FILE_PATH_LENGTH);
-        status = vxGetStatus((vx_reference)ldcObj->file_path);
-        if(status == VX_SUCCESS)
-        {
-            vxSetReferenceName((vx_reference)ldcObj->file_path, "ldc_write_node_file_path");
-
-            vxAddArrayItems(ldcObj->file_path, TIVX_FILEIO_FILE_PATH_LENGTH, &file_path[0], 1);
-        }
-        else
-        {
-            priTIOVX_MODULE_ERRORntf("[LDC-MODULE] Unable to create file path object for writing outputs! \n");
-        }
-
-        strcpy(file_prefix, "ldc_output");
-        ldcObj->file_prefix = vxCreateArray(context, VX_TYPE_UINT8, TIVX_FILEIO_FILE_PREFIX_LENGTH);
-        status = vxGetStatus((vx_reference)ldcObj->file_prefix);
-        if(status == VX_SUCCESS)
-        {
-            vxSetReferenceName((vx_reference)ldcObj->file_prefix, "ldc_write_node_file_prefix");
-
-            vxAddArrayItems(ldcObj->file_prefix, TIVX_FILEIO_FILE_PREFIX_LENGTH, &file_prefix[0], 1);
-        }
-        else
-        {
-            TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create file prefix object for writing outputs! \n");
-        }
-
-        ldcObj->write_cmd = vxCreateUserDataObject(context, "tivxFileIOWriteCmd", sizeof(tivxFileIOWriteCmd), NULL);
-        status = vxGetStatus((vx_reference)ldcObj->write_cmd);
-        if(status != VX_SUCCESS)
-        {
-            TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create file write cmd object! \n");
-        }
-        else
-        {
-            vxSetReferenceName((vx_reference)ldcObj->write_cmd, "ldc_write_node_write_cmd");
-        }
-    }
-    else
-    {
-        ldcObj->file_path   = NULL;
-        ldcObj->file_prefix = NULL;
-        ldcObj->write_node  = NULL;
-        ldcObj->write_cmd   = NULL;
+        TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create input image template! \n");
     }
 
     return status;
 }
-vx_status app_init_ldc(vx_context context, TIOVXLDCModuleObj *ldcObj, SensorObj *sensorObj, char *objName)
+
+static vx_status tiovx_ldc_module_create_outputs(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    ldcObj->table_width  = LDC_TABLE_WIDTH;
-    ldcObj->table_height = LDC_TABLE_HEIGHT;
-    ldcObj->ds_factor    = LDC_DS_FACTOR;
+    SensorObj *sensorObj = obj->sensorObj;
 
-    status = configure_dcc_params(context, ldcObj, sensorObj);
+    vx_image out_img;
+    vx_int32 buf;
 
-    if(status == VX_SUCCESS)
+    /* Create output0 object */
+    if(obj->output0.bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
     {
-        status = configure_mesh_params(context, ldcObj, sensorObj);
+        TIOVX_MODULE_ERROR("[LDC-MODULE] Output buffer queue depth %d greater than max supported %d!\n", obj->output0.bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
+        return VX_FAILURE;
     }
 
-    if(status == VX_SUCCESS)
+    for(buf = 0; buf < TIOVX_MODULES_MAX_BUFQ_DEPTH; buf++)
     {
-        status = configure_region_params(context, ldcObj, sensorObj);
+        obj->output0.arr[buf]  = NULL;
+        obj->output0.image_handle[buf]  = NULL;
     }
 
-    if(status == VX_SUCCESS)
+    out_img  = vxCreateImage(context, obj->output0.width, obj->output0.height, obj->output0.color_format);
+    status = vxGetStatus((vx_reference)out_img);
+
+    if((vx_status)VX_SUCCESS == status)
     {
-        status = configure_ldc_params(context, ldcObj, sensorObj);
+        for(buf = 0; buf < obj->output0.bufq_depth; buf++)
+        {
+            obj->output0.arr[buf]  = vxCreateObjectArray(context, (vx_reference)out_img, sensorObj->num_cameras_enabled);
+
+            status = vxGetStatus((vx_reference)obj->output0.arr[buf]);
+            if(status != VX_SUCCESS)
+            {
+                TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create output0 array! \n");
+            }
+
+            obj->output0.image_handle[buf] = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->output0.arr[buf], 0);
+        }
+        vxReleaseImage(&out_img);
+    }
+    else
+    {
+        TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create output0 image template! \n");
     }
 
-    if(status == VX_SUCCESS)
+    /* Create output1 object based on LDC module config*/
+    if(obj->en_output1 == 1)
     {
-        status = create_ldc_outputs(context, ldcObj, sensorObj);
+        if(obj->output1.bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
+        {
+            TIOVX_MODULE_ERROR("[LDC-MODULE] Output buffer queue depth %d greater than max supported %d!\n", obj->output1.bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
+            return VX_FAILURE;
+        }
+
+        for(buf = 0; buf < TIOVX_MODULES_MAX_BUFQ_DEPTH; buf++)
+        {
+            obj->output1.arr[buf]  = NULL;
+            obj->output1.image_handle[buf]  = NULL;
+        }
+
+        out_img  = vxCreateImage(context, obj->output1.width, obj->output1.height, obj->output1.color_format);
+        status = vxGetStatus((vx_reference)out_img);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            for(buf = 0; buf < obj->output1.bufq_depth; buf++)
+            {
+                obj->output1.arr[buf]  = vxCreateObjectArray(context, (vx_reference)out_img, obj->sensorObj->num_cameras_enabled);
+
+                status = vxGetStatus((vx_reference)obj->output1.arr[buf]);
+                if(status != VX_SUCCESS)
+                {
+                    TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create output1 array! \n");
+                }
+
+                obj->output1.image_handle[buf] = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->output1.arr[buf], 0);
+            }
+            vxReleaseImage(&out_img);
+        }
+        else
+        {
+            TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create output1 image  template! \n");
+        }
+    }
+    else
+    {
+        for(buf = 0; buf < TIOVX_MODULES_MAX_BUFQ_DEPTH; buf++)
+        {
+            obj->output1.arr[buf]  = NULL;
+            obj->output1.image_handle[buf]  = NULL;
+        }
+    }
+
+    if(obj->en_out_image_write == 1)
+    {
+        char file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
+        char file_prefix[TIVX_FILEIO_FILE_PREFIX_LENGTH];
+
+        strcpy(file_path, obj->output_file_path);
+        obj->file_path   = vxCreateArray(context, VX_TYPE_UINT8, TIVX_FILEIO_FILE_PATH_LENGTH);
+        status = vxGetStatus((vx_reference)obj->file_path);
+        if((vx_status)VX_SUCCESS == status)
+        {
+            vxAddArrayItems(obj->file_path, TIVX_FILEIO_FILE_PATH_LENGTH, &file_path[0], 1);
+        }
+        else
+        {
+            TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create file path object for fileio!\n");
+        }
+
+        sprintf(file_prefix, "ldc_output0");
+        obj->file_prefix = vxCreateArray(context, VX_TYPE_UINT8, TIVX_FILEIO_FILE_PREFIX_LENGTH);
+        status = vxGetStatus((vx_reference)obj->file_prefix);
+        if((vx_status)VX_SUCCESS == status)
+        {
+            vxAddArrayItems(obj->file_prefix, TIVX_FILEIO_FILE_PREFIX_LENGTH, &file_prefix[0], 1);
+        }
+        else
+        {
+            TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create file prefix object for output!\n");
+        }
+
+        obj->write_cmd = vxCreateUserDataObject(context, "tivxFileIOWriteCmd", sizeof(tivxFileIOWriteCmd), NULL);
+        status = vxGetStatus((vx_reference)obj->write_cmd);
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create write cmd object for output!\n");
+        }
+    }
+    else
+    {
+        obj->file_path   = NULL;
+        obj->file_prefix = NULL;
+        obj->write_node  = NULL;
+        obj->write_cmd   = NULL;
+    }
+
+    return status;
+}
+
+vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+
+    if(obj->sensorObj == NULL)
+    {
+        TIOVX_MODULE_ERROR("Sensor Object handle is NULL!");
+        status = VX_FAILURE;
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        obj->table_width  = LDC_TABLE_WIDTH;
+        obj->table_height = LDC_TABLE_HEIGHT;
+        obj->ds_factor    = LDC_DS_FACTOR;
+
+        status = tiovx_ldc_module_configure_dcc_params(context, obj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_ldc_module_configure_mesh_params(context, obj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_ldc_module_configure_region_params(context, obj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_ldc_module_configure_ldc_params(context, obj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_ldc_module_create_input(context, obj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_ldc_module_create_outputs(context, obj);
     }
 
     return (status);
 }
 
-void app_deinit_ldc(TIOVXLDCModuleObj *ldcObj)
-{
-    vxReleaseUserDataObject(&ldcObj->config);
-    vxReleaseUserDataObject(&ldcObj->region_config);
-    vxReleaseUserDataObject(&ldcObj->mesh_config);
-
-    vxReleaseImage(&ldcObj->mesh_img);
-    vxReleaseObjectArray(&ldcObj->output_arr);
-
-    if(ldcObj->dcc_config != NULL)
-    {
-        vxReleaseUserDataObject(&ldcObj->dcc_config);
-    }
-    if(ldcObj->en_out_ldc_write == 1)
-    {
-        vxReleaseArray(&ldcObj->file_path);
-        vxReleaseArray(&ldcObj->file_prefix);
-        vxReleaseUserDataObject(&ldcObj->write_cmd);
-    }
-}
-
-void app_delete_ldc(TIOVXLDCModuleObj *ldcObj)
-{
-    if(ldcObj->node != NULL)
-    {
-        vxReleaseNode(&ldcObj->node);
-    }
-    if(ldcObj->write_node != NULL)
-    {
-        vxReleaseNode(&ldcObj->write_node);
-    }
-}
-
-vx_status app_create_graph_ldc(vx_graph graph, TIOVXLDCModuleObj *ldcObj, vx_object_array input_arr, const char* target_string)
+vx_status tiovx_ldc_module_deinit(TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    vx_image input_img, output0_img, output1_img;
+    vx_int32 buf;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing LDC config handle!\n");
+        vxReleaseUserDataObject(&obj->config);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing region config handle!\n");
+        vxReleaseUserDataObject(&obj->region_config);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing mesh config handle!\n");
+        vxReleaseUserDataObject(&obj->mesh_config);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing mesh image handle!\n");
+        vxReleaseImage(&obj->mesh_img);
+    }
+
+    if(((vx_status)VX_SUCCESS == status) && (obj->dcc_config != NULL))
+    {
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing DCC config handle!\n");
+        vxReleaseUserDataObject(&obj->dcc_config);
+    }
+
+    for(buf = 0; buf < obj->input.bufq_depth; buf++)
+    {
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing input image handle!\n");
+            status = vxReleaseImage(&obj->input.image_handle[buf]);
+        }
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing input image arr!\n");
+            status = vxReleaseObjectArray(&obj->input.arr[buf]);
+        }
+    }
+
+    for(buf = 0; buf < obj->output0.bufq_depth; buf++)
+    {
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing output0 image handle!\n");
+            status = vxReleaseImage(&obj->output0.image_handle[buf]);
+        }
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing output0 image arr!\n");
+            status = vxReleaseObjectArray(&obj->output0.arr[buf]);
+        }
+    }
+
+    for(buf = 0; buf < obj->output1.bufq_depth; buf++)
+    {
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing output1 image handle!\n");
+            status = vxReleaseImage(&obj->output1.image_handle[buf]);
+        }
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing output1 image arr!\n");
+            status = vxReleaseObjectArray(&obj->output1.arr[buf]);
+        }
+    }
+
+    if(obj->en_out_image_write == 1)
+    {
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing output path array!\n");
+            status = vxReleaseArray(&obj->file_path);
+        }
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing scaler output file prefix array!\n");
+            status = vxReleaseArray(&obj->file_prefix);
+        }
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing scaler output write command object!\n");
+            status = vxReleaseUserDataObject(&obj->write_cmd);
+        }
+    }
+
+    return status;
+}
+
+vx_status tiovx_ldc_module_delete(TIOVXLDCModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+
+    if(obj->node != NULL)
+    {
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing node reference!\n");
+        status = vxReleaseNode(&obj->node);
+    }
+    if(obj->write_node != NULL)
+    {
+        if((vx_status)VX_SUCCESS == status)
+        {
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing write node reference!\n");
+            status = vxReleaseNode(&obj->write_node);
+        }
+    }
+
+    return status;
+}
+
+vx_status tiovx_ldc_module_create(vx_graph graph, TIOVXLDCModuleObj *obj, vx_object_array input_arr, const char* target_string)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_image input_img, output0_img, output1_img = NULL;
 
     if(input_arr != NULL)
     {
@@ -423,80 +643,190 @@ vx_status app_create_graph_ldc(vx_graph graph, TIOVXLDCModuleObj *ldcObj, vx_obj
     }
     else
     {
-        input_img = (vx_image)vxGetObjectArrayItem(ldcObj->input.arr[0], 0);
+        input_img = (vx_image)vxGetObjectArrayItem(obj->input.arr[0], 0);
     }
 
-    if(ldcObj->output0.arr[0] != NULL)
+    output0_img = (vx_image)vxGetObjectArrayItem(obj->output0.arr[0], 0);
+
+    if(obj->en_output1 == 1)
     {
-        output0_img = NULL;
-    }
-    else
-    {
-        output0_img = (vx_image)vxGetObjectArrayItem(ldcObj->output0.arr[0], 0);
+        output1_img = (vx_image)vxGetObjectArrayItem(obj->output1.arr[0], 0);
     }
 
-    if(ldcObj->output1.arr[0] != NULL)
-    {
-        output1_img = NULL;
-    }
-    else
-    {
-        output1_img = (vx_image)vxGetObjectArrayItem(ldcObj->output1.arr[0], 0);
-    }
-
-    ldcObj->node = tivxVpacLdcNode(graph,
-                                   ldcObj->config,
-                                   ldcObj->warp_matrix,
-                                   ldcObj->region_prms,
-                                   ldcObj->mesh_prms,
-                                   ldcObj->mesh_img,
-                                   ldcObj->dcc_config,
-                                   input_img,
-                                   output0_img,
-                                   output1_img);
+    obj->node = tivxVpacLdcNode(graph,
+                                obj->config,
+                                obj->warp_matrix,
+                                obj->region_config,
+                                obj->mesh_config,
+                                obj->mesh_img,
+                                obj->dcc_config,
+                                input_img,
+                                output0_img,
+                                output1_img);
 
     vxReleaseImage(&input_img);
     vxReleaseImage(&output0_img);
-    vxReleaseImage(&output1_img);
 
-    status = vxGetStatus((vx_reference)ldcObj->node);
-    if(status == VX_SUCCESS)
+    if(obj->en_output1 == 1)
     {
-        vxSetNodeTarget(ldcObj->node, VX_TARGET_STRING, target_string);
-        vxSetReferenceName((vx_reference)ldcObj->node, "ldc_node");
+        vxReleaseImage(&output1_img);
+    }
+
+    status = vxGetStatus((vx_reference)obj->node);
+    if((vx_status)VX_SUCCESS == status)
+    {
+        vxSetNodeTarget(obj->node, VX_TARGET_STRING, target_string);
+        vxSetReferenceName((vx_reference)obj->node, "ldc_node");
 
         vx_bool replicate[] = { vx_false_e, vx_false_e, vx_false_e, vx_false_e, vx_false_e, vx_false_e, vx_true_e, vx_true_e, vx_false_e};
-        vxReplicateNode(graph, ldcObj->node, replicate, 9);
+        vxReplicateNode(graph, obj->node, replicate, 9);
     }
     else
     {
         TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create LDC node ! \n");
     }
 
-    if(ldcObj->en_out_ldc_write == 1)
+    if(obj->en_out_image_write == 1)
     {
-        status = app_create_graph_ldc_write_output(graph, ldcObj);
+        status = tiovx_ldc_module_add_write_output_node(graph, obj);
     }
 
     return status;
 }
 
-vx_status app_create_graph_ldc_write_output(vx_graph graph, TIOVXLDCModuleObj *ldcObj)
+vx_status tiovx_ldc_module_release_buffers(TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    vx_image output_img = (vx_image)vxGetObjectArrayItem(ldcObj->output0.arr[0], 0);
-    ldcObj->write_node = tivxWriteImageNode(graph, output_img, ldcObj->file_path, ldcObj->file_prefix);
+    SensorObj *sensorObj = obj->sensorObj;
+
+    void       *virtAddr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    vx_uint32   size[TIOVX_MODULES_MAX_REF_HANDLES];
+    vx_uint32   numEntries;
+    vx_int32    bufq, ch;
+
+    /* Free input handles */
+    for(bufq = 0; bufq < obj->input.bufq_depth; bufq++)
+    {
+        for(ch = 0; ch < sensorObj->num_cameras_enabled; ch++)
+        {
+            vx_reference ref = vxGetObjectArrayItem(obj->input.arr[bufq], ch);
+            status = vxGetStatus((vx_reference)ref);
+
+            if((vx_status)VX_SUCCESS == status)
+            {
+                /* Export handles to get valid size information. */
+                status = tivxReferenceExportHandle(ref,
+                                                   virtAddr,
+                                                   size,
+                                                   TIOVX_MODULES_MAX_REF_HANDLES,
+                                                   &numEntries);
+
+                if((vx_status)VX_SUCCESS == status)
+                {
+                    vx_int32 ctr;
+                    /* Currently the vx_image buffers are alloated in one shot for multiple planes.
+                        So if we are freeing this buffer then we need to get only the first plane
+                        pointer address but add up the all the sizes to free the entire buffer */
+                    vx_uint32 freeSize = 0;
+                    for(ctr = 0; ctr < numEntries; ctr++)
+                    {
+                        freeSize += size[ctr];
+                    }
+
+                    TIOVX_MODULE_PRINTF("[LDC-MODULE] Freeing input, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+
+                    for(ctr = 0; ctr < numEntries; ctr++)
+                    {
+                        virtAddr[ctr] = NULL;
+                    }
+
+                    /* Assign NULL handles to the OpenVx objects as it will avoid
+                        doing a tivxMemFree twice, once now and once during release */
+                    status = tivxReferenceImportHandle(ref,
+                                                    (const void **)virtAddr,
+                                                    (const uint32_t *)size,
+                                                    numEntries);
+                }
+                vxReleaseReference(&ref);
+            }
+        }
+    }
+
+    /* Free output handles */
+    for(bufq = 0; bufq < obj->output0.bufq_depth; bufq++)
+    {
+        for(ch = 0; ch < sensorObj->num_cameras_enabled; ch++)
+        {
+            vx_reference ref = vxGetObjectArrayItem(obj->output0.arr[bufq], ch);
+            status = vxGetStatus((vx_reference)ref);
+
+            if((vx_status)VX_SUCCESS == status)
+            {
+                /* Export handles to get valid size information. */
+                status = tivxReferenceExportHandle(ref,
+                                                    virtAddr,
+                                                    size,
+                                                    TIOVX_MODULES_MAX_REF_HANDLES,
+                                                    &numEntries);
+
+                if((vx_status)VX_SUCCESS == status)
+                {
+                    vx_int32 ctr;
+                    /* Currently the vx_image buffers are alloated in one shot for multiple planes.
+                        So if we are freeing this buffer then we need to get only the first plane
+                        pointer address but add up the all the sizes to free the entire buffer */
+                    vx_uint32 freeSize = 0;
+                    for(ctr = 0; ctr < numEntries; ctr++)
+                    {
+                        freeSize += size[ctr];
+                    }
+
+                    TIOVX_MODULE_PRINTF("[LDC-MODULE] Freeing output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+
+                    for(ctr = 0; ctr < numEntries; ctr++)
+                    {
+                        virtAddr[ctr] = NULL;
+                    }
+
+                    /* Assign NULL handles to the OpenVx objects as it will avoid
+                        doing a tivxMemFree twice, once now and once during release */
+                    status = tivxReferenceImportHandle(ref,
+                                                    (const void **)virtAddr,
+                                                    (const uint32_t *)size,
+                                                    numEntries);
+                }
+                vxReleaseReference(&ref);
+            }
+        }
+    }
+
+    if ((vx_status)VX_SUCCESS != status)
+    {
+        VX_PRINT(VX_ZONE_ERROR, "tivxReferenceExportHandle() failed.\n");
+    }
+
+    return status;
+}
+
+vx_status tiovx_ldc_module_add_write_output_node(vx_graph graph, TIOVXLDCModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_image output_img = (vx_image)vxGetObjectArrayItem(obj->output0.arr[0], 0);
+    obj->write_node = tivxWriteImageNode(graph, output_img, obj->file_path, obj->file_prefix);
     vxReleaseImage(&output_img);
 
-    status = vxGetStatus((vx_reference)ldcObj->write_node);
-    if(status == VX_SUCCESS)
+    status = vxGetStatus((vx_reference)obj->write_node);
+    if((vx_status)VX_SUCCESS == status)
     {
-        vxSetNodeTarget(ldcObj->write_node, VX_TARGET_STRING, TIVX_TARGET_A72_0);
-        vxSetReferenceName((vx_reference)ldcObj->write_node, "ldc_write_node");
+        vxSetNodeTarget(obj->write_node, VX_TARGET_STRING, TIVX_TARGET_A72_0);
+        vxSetReferenceName((vx_reference)obj->write_node, "ldc_write_node");
 
         vx_bool replicate[] = { vx_true_e, vx_false_e, vx_false_e};
-        vxReplicateNode(graph, ldcObj->write_node, replicate, 3);
+        vxReplicateNode(graph, obj->write_node, replicate, 3);
     }
     else
     {
@@ -506,7 +836,7 @@ vx_status app_create_graph_ldc_write_output(vx_graph graph, TIOVXLDCModuleObj *l
     return (status);
 }
 
-vx_status app_send_cmd_ldc_write_node(TIOVXLDCModuleObj *ldcObj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip)
+vx_status tiovx_ldc_module_send_write_output_cmd(TIOVXLDCModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip)
 {
     vx_status status = VX_SUCCESS;
 
@@ -516,16 +846,16 @@ vx_status app_send_cmd_ldc_write_node(TIOVXLDCModuleObj *ldcObj, vx_uint32 start
     write_cmd.num_frames = num_frames;
     write_cmd.num_skip = num_skip;
 
-    status = vxCopyUserDataObject(ldcObj->write_cmd, 0, sizeof(tivxFileIOWriteCmd),\
+    status = vxCopyUserDataObject(obj->write_cmd, 0, sizeof(tivxFileIOWriteCmd),\
                   &write_cmd, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
 
-    if(status == VX_SUCCESS)
+    if((vx_status)VX_SUCCESS == status)
     {
         vx_reference refs[2];
 
-        refs[0] = (vx_reference)ldcObj->write_cmd;
+        refs[0] = (vx_reference)obj->write_cmd;
 
-        status = tivxNodeSendCommand(ldcObj->write_node, TIVX_CONTROL_CMD_SEND_TO_ALL_REPLICATED_NODES,
+        status = tivxNodeSendCommand(obj->write_node, TIVX_CONTROL_CMD_SEND_TO_ALL_REPLICATED_NODES,
                                  TIVX_FILEIO_CMD_SET_FILE_WRITE,
                                  refs, 1u);
 

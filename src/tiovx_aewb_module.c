@@ -546,7 +546,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
     /* Free input */
     for(bufq = 0; bufq < obj->out_bufq_depth; bufq++)
     {
-        for(in=0; in < obj->sensorObj.num_cameras_enabled; in++)
+        for(in=0; in < obj->sensorObj->num_cameras_enabled; in++)
         {
             vx_reference ref = vxGetObjectArrayItem(obj->aewb_input_arr[bufq], in);
             status = vxGetStatus((vx_reference)ref);
@@ -592,7 +592,7 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
     /* Free output */
     for(bufq = 0; bufq < obj->out_bufq_depth; bufq++)
     {
-        for(in=0; in < obj->sensorObj.num_cameras_enabled; in++)
+        for(in=0; in < obj->sensorObj->num_cameras_enabled; in++)
         {
             vx_reference ref = vxGetObjectArrayItem(obj->aewb_output_arr[bufq], in);
             status = vxGetStatus((vx_reference)ref);

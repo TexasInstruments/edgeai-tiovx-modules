@@ -159,7 +159,7 @@ static vx_status app_init(AppObj *obj)
 
 static void app_deinit(AppObj *obj)
 {
-    tiovx_deinit_sensor(&obj->aewbObj.sensorObj);
+    tiovx_deinit_sensor(&obj->sensorObj);
 
     tiovx_aewb_module_deinit(&obj->aewbObj);
 

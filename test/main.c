@@ -73,6 +73,7 @@
 #define APP_MODULES_TEST_PRE_PROC (1)
 #define APP_MODULES_TEST_COLOR_BLEND (1)
 #define APP_MODULES_TEST_AEWB (1)
+#define APP_MODULES_TEST_LDC (1)
 
 
 int32_t appInit()
@@ -156,13 +157,23 @@ int main(int argc, char *argv[])
     }
 #endif
 
-#if (APP_MODULES_TEST_AEWB) 
+#if (APP_MODULES_TEST_AEWB)
     if(status==0)
     {
         printf("Running AEWB module test\n");
         int app_modules_aewb_test(int argc, char* argv[]);
 
         status = app_modules_aewb_test(argc, argv);
+    }
+#endif
+
+#if (APP_MODULES_TEST_LDC)
+    if(status==0)
+    {
+        printf("Running LDC module test\n");
+        int app_modules_ldc_test(int argc, char* argv[]);
+
+        status = app_modules_ldc_test(argc, argv);
     }
 #endif
 
