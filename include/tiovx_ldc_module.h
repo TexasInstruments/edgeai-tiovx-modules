@@ -120,6 +120,9 @@ typedef struct {
     /*! User data object for config parameter, used as node parameter of LDC node */
     vx_user_data_object config;
 
+    /*! Must be 2x3 (affine) or 3x3 (perspective) */
+    vx_matrix warp_matrix;
+
     /*! LDC mesh params structure to initialize mesh config object */
     tivx_vpac_ldc_mesh_params_t mesh_params;
 
@@ -156,8 +159,14 @@ typedef struct {
     /*! LDC output1 Image Object  */
     ImgObj output1;
 
+    /*! Pointer to sensor object */
+    SensorObj *sensorObj;
+
+    /*! Flag to enable output1  */
+    vx_int32 en_output1;
+
     /*! Flag to enable writing LDC output  */
-    vx_int32 en_out_ldc_write;
+    vx_int32 en_out_image_write;
 
     /*! Node used to write LDC output */
     vx_node write_node;
@@ -174,9 +183,6 @@ typedef struct {
     /*! Output file path for LDC node output */
     vx_char output_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
 
-    /*! Name of LDC module */
-    vx_char objName[APP_MODULES_MAX_OBJ_NAME_SIZE];
-
 }TIOVXLDCModuleObj;
 
 /** \brief LDC module init helper function
@@ -185,29 +191,29 @@ typedef struct {
  * node
  *
  * \param [in]  context    OpenVX context which must be created using \ref vxCreateContext
- * \param [out] ldcObj     LDC Module object which gets populated with LDC node data objects
+ * \param [out] obj     LDC Module object which gets populated with LDC node data objects
  * \param [in]  sensorObj  Sensor Module object used to initialize LDC data object parameters;
  *                         must be initialized prior to passing to this function
  */
-vx_status app_init_ldc(vx_context context, TIOVXLDCModuleObj *ldcObj, SensorObj *sensorObj);
+vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj);
 
 /** \brief LDC module deinit helper function
  *
  * This LDC deinit helper function will release all the data objects created during the \ref app_init_ldc call
  *
- * \param [in,out] ldcObj  LDC Module object which contains LDC node data objects which are released in this function
+ * \param [in,out] obj  LDC Module object which contains LDC node data objects which are released in this function
  *
  */
-void app_deinit_ldc(TIOVXLDCModuleObj *ldcObj);
+vx_status tiovx_ldc_module_deinit(TIOVXLDCModuleObj *obj);
 
 /** \brief LDC module delete helper function
  *
  * This LDC delete helper function will delete the LDC node and write node that is created during the \ref app_create_graph_ldc call
  *
- * \param [in,out] ldcObj  LDC Module object which contains LDC node objects which are released in this function
+ * \param [in,out] obj  LDC Module object which contains LDC node objects which are released in this function
  *
  */
-void app_delete_ldc(TIOVXLDCModuleObj *ldcObj);
+vx_status tiovx_ldc_module_delete(TIOVXLDCModuleObj *obj);
 
 /** \brief LDC module create helper function
  *
@@ -215,34 +221,35 @@ void app_delete_ldc(TIOVXLDCModuleObj *ldcObj);
  * Internally calls \ref app_create_graph_ldc_write_output if en_out_ldc_write is set
  *
  * \param [in]     graph      OpenVX graph that has been created using \ref vxCreateGraph and where the LDC node is created
- * \param [in,out] ldcObj     LDC Module object which contains LDC node and write node which are created in this function
+ * \param [in,out] obj     LDC Module object which contains LDC node and write node which are created in this function
  * \param [in]     input_arr  Input object array to LDC node.  Must be created separately using \ref vxCreateObjectArray
  *
  */
-vx_status app_create_graph_ldc(vx_graph graph, TIOVXLDCModuleObj *ldcObj, vx_object_array input_arr, const char* target_string);
+vx_status tiovx_ldc_module_create(vx_graph graph, TIOVXLDCModuleObj *obj, vx_object_array input_arr, const char* target_string);
 
 /** \brief LDC module write output helper function
  *
  * This LDC create helper function will create the node for writing the LDC output
  *
  * \param [in]     graph   OpenVX graph
- * \param [in,out] ldcObj  LDC Module object which contains LDC node and write node which are created in this function
+ * \param [in,out] obj  LDC Module object which contains LDC node and write node which are created in this function
  *
  */
-vx_status app_create_graph_ldc_write_output(vx_graph graph, TIOVXLDCModuleObj *ldcObj);
+vx_status tiovx_ldc_module_add_write_output_node(vx_graph graph, TIOVXLDCModuleObj *obj);
 
+vx_status tiovx_ldc_module_release_buffers(TIOVXLDCModuleObj *obj);
 
 /** \brief LDC module write output helper function
  *
  * This LDC create helper function will create the node for writing the LDC output
  *
- * \param [in] ldcObj        LDC Module object which contains the write node used in this function
+ * \param [in] obj        LDC Module object which contains the write node used in this function
  * \param [in] start_frame   Starting frame to write
  * \param [in] num_frames    Total number of frames to write
  * \param [in] num_skip      Number of capture frames to skip writing
  *
  */
-vx_status app_send_cmd_ldc_write_node(TIOVXLDCModuleObj *ldcObj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
+vx_status tiovx_ldc_module_send_write_output_cmd(TIOVXLDCModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
 
 /* @} */
 

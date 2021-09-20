@@ -66,8 +66,8 @@
 
 #define APP_BUFQ_DEPTH   (1)
 
-#define IMAGE_WIDTH  (640)
-#define IMAGE_HEIGHT (480)
+#define IMAGE_WIDTH  (1920)
+#define IMAGE_HEIGHT (1080)
 
 typedef struct {
 
@@ -91,7 +91,7 @@ static vx_status app_verify_graph(AppObj *obj);
 static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
-vx_status app_modules_aewb_test(vx_int32 argc, vx_char* argv[])
+vx_status app_modules_ldc_test(vx_int32 argc, vx_char* argv[])
 {
     AppObj *obj = &gAppObj;
     vx_status status = VX_SUCCESS;
@@ -134,19 +134,31 @@ static vx_status app_init(AppObj *obj)
 
     if(status == VX_SUCCESS)
     {
-        tivxImagingLoadKernels(obj->context);
+        tivxHwaLoadKernels(obj->context);
     }
 
     if(status == VX_SUCCESS)
     {
         TIOVXLDCModuleObj *ldcObj = &obj->ldcObj;
 
-        ldcObj->in_bufq_depth = APP_BUFQ_DEPTH;
-        ldcObj->out_bufq_depth = APP_BUFQ_DEPTH;
-
-        SensorObj *sensorObj = &ldcObj->sensorObj;
+        SensorObj *sensorObj = &obj->sensorObj;
         tiovx_querry_sensor(sensorObj);
         tiovx_init_sensor(sensorObj,"IMX219-RPI-V2");
+
+        ldcObj->en_out_image_write = 0;
+        ldcObj->en_output1 = 0;
+
+        ldcObj->input.bufq_depth = APP_BUFQ_DEPTH;
+        ldcObj->input.color_format = VX_DF_IMAGE_NV12;
+        ldcObj->input.width = IMAGE_WIDTH;
+        ldcObj->input.height = IMAGE_HEIGHT;
+
+        ldcObj->output0.bufq_depth = APP_BUFQ_DEPTH;
+        ldcObj->output0.color_format = VX_DF_IMAGE_NV12;
+        ldcObj->output0.width = IMAGE_WIDTH;
+        ldcObj->output0.height = IMAGE_HEIGHT;
+
+        ldcObj->sensorObj = sensorObj;
 
         /* Initialize modules */
         status = tiovx_ldc_module_init(obj->context, ldcObj);
@@ -158,11 +170,11 @@ static vx_status app_init(AppObj *obj)
 
 static void app_deinit(AppObj *obj)
 {
-    tiovx_deinit_sensor(&obj->ldcObj.sensorObj);
+    tiovx_deinit_sensor(&obj->sensorObj);
 
     tiovx_ldc_module_deinit(&obj->ldcObj);
 
-    tivxImagingUnLoadKernels(obj->context);
+    tivxHwaUnLoadKernels(obj->context);
 
     vxReleaseContext(&obj->context);
 }
@@ -195,7 +207,7 @@ static vx_status app_create_graph(AppObj *obj)
 
         status = add_graph_parameter_by_node_index(obj->graph, obj->ldcObj.node, 6);
 
-        obj->ldcObj.input_graph_parameter_index = graph_parameter_index;
+        obj->ldcObj.input.graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->ldcObj.input.image_handle[0];
@@ -206,7 +218,7 @@ static vx_status app_create_graph(AppObj *obj)
     {
         status = add_graph_parameter_by_node_index(obj->graph, obj->ldcObj.node, 7);
 
-        obj->ldcObj.output_graph_parameter_index = graph_parameter_index;
+        obj->ldcObj.output0.graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->ldcObj.output0.image_handle[0];
