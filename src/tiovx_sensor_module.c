@@ -74,14 +74,26 @@ vx_status tiovx_querry_sensor(SensorObj *sensorObj)
 vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName)
 {
     vx_status status = VX_SUCCESS;
-    sensorObj->sensor_dcc_enabled=0;
+    sensorObj->sensor_dcc_enabled=1;
     sensorObj->sensor_exp_control_enabled=0;
     sensorObj->sensor_gain_control_enabled=0;
     sensorObj->sensor_wdr_enabled=0;
     sensorObj->num_cameras_enabled=1;
     sensorObj->ch_mask=1;
     snprintf(sensorObj->sensor_name, ISS_SENSORS_MAX_NAME, "%s", objName);
-    sensorObj->sensorParams.dccId=0;
+
+    if(strcmp(sensorObj->sensor_name, SENSOR_SONY_IMX390_UB953_D3))
+    {
+        sensorObj->sensorParams.dccId=390;
+    }
+    else if(strcmp(sensorObj->sensor_name, SENSOR_ONSEMI_AR0820_UB953_LI))
+    {
+        sensorObj->sensorParams.dccId=820;
+    }
+    else if(strcmp(sensorObj->sensor_name, SENSOR_ONSEMI_AR0233_UB953_MARS))
+    {
+        sensorObj->sensorParams.dccId=233;
+    }
 
     return status;
 }
