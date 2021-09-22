@@ -66,8 +66,11 @@
 
 #define APP_BUFQ_DEPTH   (1)
 
-#define IMAGE_WIDTH  (1920)
-#define IMAGE_HEIGHT (1080)
+#define INPUT_WIDTH  (1936)
+#define INPUT_HEIGHT (1096)
+
+#define OUTPUT_WIDTH  (1920)
+#define OUTPUT_HEIGHT (1080)
 
 typedef struct {
 
@@ -143,25 +146,26 @@ static vx_status app_init(AppObj *obj)
 
         SensorObj *sensorObj = &obj->sensorObj;
         tiovx_querry_sensor(sensorObj);
-        tiovx_init_sensor(sensorObj,"IMX219-RPI-V2");
+        tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX390_UB953_D3");
 
+        snprintf(ldcObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/imx390/dcc_ldc_wdr.bin");
+
+        ldcObj->ldc_mode = TIOVX_MODULE_LDC_OP_MODE_DCC_DATA;
         ldcObj->en_out_image_write = 0;
         ldcObj->en_output1 = 0;
 
         ldcObj->input.bufq_depth = APP_BUFQ_DEPTH;
         ldcObj->input.color_format = VX_DF_IMAGE_NV12;
-        ldcObj->input.width = IMAGE_WIDTH;
-        ldcObj->input.height = IMAGE_HEIGHT;
+        ldcObj->input.width = INPUT_WIDTH;
+        ldcObj->input.height = INPUT_HEIGHT;
 
         ldcObj->output0.bufq_depth = APP_BUFQ_DEPTH;
         ldcObj->output0.color_format = VX_DF_IMAGE_NV12;
-        ldcObj->output0.width = IMAGE_WIDTH;
-        ldcObj->output0.height = IMAGE_HEIGHT;
-
-        ldcObj->sensorObj = sensorObj;
+        ldcObj->output0.width = OUTPUT_WIDTH;
+        ldcObj->output0.height = OUTPUT_HEIGHT;
 
         /* Initialize modules */
-        status = tiovx_ldc_module_init(obj->context, ldcObj);
+        status = tiovx_ldc_module_init(obj->context, ldcObj, sensorObj);
         APP_PRINTF("LDC Init Done! \n");
     }
 
@@ -256,8 +260,14 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/imx390_fisheye_1936x1096_nv12.yuv";
+    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/imx390_rectified_1920x1080_nv12.yuv";
+
+    vx_image input_o, output_o;
+
     TIOVXLDCModuleObj *ldcObj = &obj->ldcObj;
     vx_int32 bufq;
+    uint32_t num_refs;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
@@ -273,7 +283,27 @@ static vx_status app_run_graph(AppObj *obj)
     assign_image_buffers(&ldcObj->input, inAddr[bufq], inSizes[bufq], bufq);
     assign_image_buffers(&ldcObj->output0, outAddr[bufq], outSizes[bufq], bufq);
 
-    //status = vxProcessGraph(obj->graph);
+    readImage(input_filename, ldcObj->input.image_handle[0]);
+
+    APP_PRINTF("Enqueueing input buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&ldcObj->input.image_handle[0], 1);
+    APP_PRINTF("Enqueueing output buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, 1, (vx_reference*)&ldcObj->output0.image_handle[0], 1);
+
+    APP_PRINTF("Processing!\n");
+    status = vxScheduleGraph(obj->graph);
+    if((vx_status)VX_SUCCESS != status) {
+      APP_PRINTF("Schedule Graph failed: %d!\n", status);
+    }
+    status = vxWaitGraph(obj->graph);
+    if((vx_status)VX_SUCCESS != status) {
+      APP_PRINTF("Wait Graph failed: %d!\n", status);
+    }
+
+    vxGraphParameterDequeueDoneRef(obj->graph, 0, (vx_reference*)&input_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, 1, (vx_reference*)&output_o, 1, &num_refs);
+
+    writeImage(output_filename, ldcObj->output0.image_handle[0]);
 
     release_image_buffers(&ldcObj->input, inAddr[bufq], inSizes[bufq], bufq);
     release_image_buffers(&ldcObj->output0, outAddr[bufq], outSizes[bufq], bufq);
