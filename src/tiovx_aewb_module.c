@@ -570,8 +570,11 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
 
                     vx_uint32 freeSize = size[0];
 
-                    TIOVX_MODULE_PRINTF("[AEWB-MODULE] Freeing input %d, bufq=%d, addr = 0x%016lX, size = %d \n", in, bufq, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Freeing input %d, bufq=%d, addr = 0x%016lX, size = %d \n", in, bufq, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     virtAddr[0] = NULL;
 
@@ -616,8 +619,11 @@ vx_status tiovx_aewb_module_release_buffers(TIOVXAEWBModuleObj *obj)
 
                     vx_uint32 freeSize = size[0];
 
-                    TIOVX_MODULE_PRINTF("[AEWB-MODULE] Freeing output %d, bufq=%d, addr = 0x%016lX, size = %d \n", in, bufq, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[AEWB-MODULE] Freeing output %d, bufq=%d, addr = 0x%016lX, size = %d \n", in, bufq, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     virtAddr[0] = NULL;
 

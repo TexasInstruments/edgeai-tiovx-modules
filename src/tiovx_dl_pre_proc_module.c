@@ -436,8 +436,11 @@ vx_status tiovx_dl_pre_proc_module_release_buffers(TIOVXDLPreProcModuleObj *obj)
                         freeSize += size[ctr];
                     }
 
-                    TIOVX_MODULE_PRINTF("[DL-PRE-PROC-MODULE] Freeing input, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[DL-PRE-PROC-MODULE] Freeing input, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     for(ctr = 0; ctr < numEntries; ctr++)
                     {
@@ -485,8 +488,11 @@ vx_status tiovx_dl_pre_proc_module_release_buffers(TIOVXDLPreProcModuleObj *obj)
                         freeSize += size[ctr];
                     }
 
-                    TIOVX_MODULE_PRINTF("[DL-PRE-PROC-MODULE] Freeing output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[DL-PRE-PROC-MODULE] Freeing output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     for(ctr = 0; ctr < numEntries; ctr++)
                     {
