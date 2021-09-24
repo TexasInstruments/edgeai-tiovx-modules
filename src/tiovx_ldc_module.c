@@ -745,8 +745,11 @@ vx_status tiovx_ldc_module_release_buffers(TIOVXLDCModuleObj *obj)
                         freeSize += size[ctr];
                     }
 
-                    TIOVX_MODULE_PRINTF("[LDC-MODULE] Freeing input, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[LDC-MODULE] Freeing input, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     for(ctr = 0; ctr < numEntries; ctr++)
                     {
@@ -794,8 +797,11 @@ vx_status tiovx_ldc_module_release_buffers(TIOVXLDCModuleObj *obj)
                         freeSize += size[ctr];
                     }
 
-                    TIOVX_MODULE_PRINTF("[LDC-MODULE] Freeing output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[LDC-MODULE] Freeing output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     for(ctr = 0; ctr < numEntries; ctr++)
                     {

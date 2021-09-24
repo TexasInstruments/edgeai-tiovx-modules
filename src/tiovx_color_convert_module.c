@@ -399,8 +399,11 @@ vx_status tiovx_color_convert_module_release_buffers(TIOVXColorConvertModuleObj 
                         freeSize += size[ctr];
                     }
 
-                    TIOVX_MODULE_PRINTF("[COLOR-CONVERT-MODULE] Freeing input, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[COLOR-CONVERT-MODULE] Freeing input, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     for(ctr = 0; ctr < numEntries; ctr++)
                     {
@@ -448,8 +451,11 @@ vx_status tiovx_color_convert_module_release_buffers(TIOVXColorConvertModuleObj 
                         freeSize += size[ctr];
                     }
 
-                    TIOVX_MODULE_PRINTF("[COLOR-CONVERT-MODULE] Freeing output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    if(virtAddr[0] != NULL)
+                    {
+                        TIOVX_MODULE_PRINTF("[COLOR-CONVERT-MODULE] Freeing output, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                    }
 
                     for(ctr = 0; ctr < numEntries; ctr++)
                     {

@@ -377,8 +377,11 @@ vx_status tiovx_img_mosaic_module_release_buffers(TIOVXImgMosaicModuleObj *obj)
                             freeSize += size[ctr];
                         }
 
-                        TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing input %d, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", in, bufq, ch, (vx_uint64)virtAddr[0], freeSize);
-                        tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                        if(virtAddr[0] != NULL)
+                        {
+                            TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing input %d, bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", in, bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                            tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                        }
 
                         for(ctr = 0; ctr < numEntries; ctr++)
                         {
@@ -425,8 +428,11 @@ vx_status tiovx_img_mosaic_module_release_buffers(TIOVXImgMosaicModuleObj *obj)
                     freeSize += size[ctr];
                 }
 
-                TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing output, bufq=%d, addr = 0x%016lX, size = %d \n", bufq, (vx_uint64)virtAddr[0], freeSize);
-                tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                if(virtAddr[0] != NULL)
+                {
+                    TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing output, bufq=%d, addr = 0x%016lX, size = %d \n", bufq, (vx_uint64)virtAddr[0], freeSize);
+                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                }
 
                 for(ctr = 0; ctr < numEntries; ctr++)
                 {
@@ -470,8 +476,11 @@ vx_status tiovx_img_mosaic_module_release_buffers(TIOVXImgMosaicModuleObj *obj)
                     freeSize += size[ctr];
                 }
 
-                TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing background, bufq=%d, addr = 0x%016lX, size = %d \n", bufq, (vx_uint64)virtAddr[0], freeSize);
-                tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                if(virtAddr[0] != NULL)
+                {
+                    TIOVX_MODULE_PRINTF("[IMG-MOSAIC-MODULE] Freeing background, bufq=%d, addr = 0x%016lX, size = %d \n", bufq, (vx_uint64)virtAddr[0], freeSize);
+                    tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                }
 
                 for(ctr = 0; ctr < numEntries; ctr++)
                 {
