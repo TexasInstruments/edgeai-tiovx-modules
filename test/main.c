@@ -177,6 +177,16 @@ int main(int argc, char *argv[])
     }
 #endif
 
+#if (APP_MODULES_TEST_VISS)
+    if(status==0)
+    {
+        printf("Running VISS module test\n");
+        int app_modules_viss_test(int argc, char* argv[]);
+
+        status = app_modules_viss_test(argc, argv);
+    }
+#endif
+
     printf("All tests complete!\n");
 
     appDeInit();

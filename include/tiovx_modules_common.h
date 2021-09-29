@@ -107,6 +107,8 @@ typedef struct {
     vx_object_array arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
     tivx_raw_image image_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
 
+    tivx_raw_image_create_params_t params;
+
     vx_int32 graph_parameter_index;
     vx_int32 bufq_depth;
 

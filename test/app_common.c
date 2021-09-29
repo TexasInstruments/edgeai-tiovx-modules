@@ -62,6 +62,8 @@
 
 #include "app_common.h"
 
+static vx_uint32 get_tensor_bitdepth(vx_enum tensor_type);
+
 /*
  * Utility API used to add a graph parameter from a node, node parameter index
  */
@@ -74,6 +76,328 @@ vx_status add_graph_parameter_by_node_index(vx_graph graph, vx_node node, vx_uin
     {
         status = vxReleaseParameter(&parameter);
     }
+    return status;
+}
+
+vx_status allocate_single_raw_image_buffer(tivx_raw_image image, void *virtAddr[], vx_uint32 sizes[])
+{
+    vx_status status = VX_SUCCESS;
+
+    void      *plane_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    vx_uint32  plane_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
+
+    vx_uint32 num_planes;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        /* Export handles to get valid size information. */
+        status = tivxReferenceExportHandle((vx_reference)image,
+                                            plane_addr,
+                                            plane_sizes,
+                                            TIOVX_MODULES_MAX_REF_HANDLES,
+                                            &num_planes);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            vx_int32 p;
+            for(p = 0; p < num_planes; p++)
+            {
+                virtAddr[p] = tivxMemAlloc(plane_sizes[p], TIVX_MEM_EXTERNAL);
+                sizes[p] = plane_sizes[p];
+            }
+        }
+    }
+
+    return status;
+}
+
+vx_status delete_single_raw_image_buffer(tivx_raw_image image, void *virtAddr[], vx_uint32 sizes[])
+{
+    vx_status status = VX_SUCCESS;
+
+    void      *plane_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    vx_uint32  plane_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
+
+    vx_uint32 num_planes;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        /* Export handles to get valid size information. */
+        status = tivxReferenceExportHandle((vx_reference)image,
+                                            plane_addr,
+                                            plane_sizes,
+                                            TIOVX_MODULES_MAX_REF_HANDLES,
+                                            &num_planes);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            vx_int32 p;
+            for(p = 0; p < num_planes; p++)
+            {
+                tivxMemFree(virtAddr[p], plane_sizes[p], TIVX_MEM_EXTERNAL);
+                virtAddr[p] = NULL;
+                sizes[p] = 0;
+            }
+        }
+    }
+
+    return status;
+}
+
+vx_status assign_single_raw_image_buffer(tivx_raw_image image, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_planes)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void * addr[4];
+        vx_int32 bufsize[4];
+        vx_int32 p;
+
+        for(p = 0; p < num_planes; p++)
+        {
+            addr[p] = virtAddr[p];
+            bufsize[p] = sizes[p];
+        }
+
+        status = tivxReferenceImportHandle((vx_reference)image,
+                                        (const void **)addr,
+                                        (const uint32_t *)bufsize,
+                                        num_planes);
+    }
+
+    return status;
+}
+
+vx_status release_single_raw_image_buffer(tivx_raw_image image, void *virtAddr[], vx_uint32 sizes[], vx_uint32 num_planes)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        void * addr[4];
+        vx_int32 bufsize[4];
+        vx_int32 p;
+
+        for(p = 0; p < num_planes; p++)
+        {
+            addr[p] = NULL;
+            bufsize[p] = sizes[p];
+        }
+
+        /* Assign NULL handles to the OpenVx objects as it will avoid
+            doing a tivxMemFree twice, once now and once during release */
+        status = tivxReferenceImportHandle((vx_reference)image,
+                                            (const void **)addr,
+                                            (const uint32_t *)bufsize,
+                                            num_planes);
+    }
+
+    return status;
+}
+
+vx_status allocate_raw_image_buffers(RawImgObj *imgObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES])
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 bufq, ch, ctr;
+    vx_size num_ch;
+    vx_uint32 num_exposures;
+    vx_bool line_interleaved = vx_false_e;
+
+    APP_PRINTF("Allocating Buffers \n");
+
+    for(bufq = 0; bufq < imgObj->bufq_depth; bufq++)
+    {
+        vxQueryObjectArray(imgObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            vx_int32   l;
+
+            ctr = 0;
+            for(ch = 0; ch < num_ch; ch++)
+            {
+                tivx_raw_image image = (tivx_raw_image)vxGetObjectArrayItem(imgObj->arr[bufq], ch);
+
+                tivxQueryRawImage(image, TIVX_RAW_IMAGE_NUM_EXPOSURES, &num_exposures, sizeof(num_exposures));
+                tivxQueryRawImage(image, TIVX_RAW_IMAGE_LINE_INTERLEAVED, &line_interleaved, sizeof(line_interleaved));
+
+                if(line_interleaved == vx_true_e)
+                    num_exposures = 1;
+
+                status = allocate_single_raw_image_buffer
+                        (
+                            image,
+                            &virtAddr[bufq][ctr],
+                            &sizes[bufq][ctr]
+                        );
+
+                for(l = 0; l < num_exposures; l++)
+                {
+                    APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[bufq][ctr + l], sizes[bufq][ctr + l]);
+                }
+
+                ctr += num_exposures;
+
+                tivxReleaseRawImage(&image);
+
+                if((vx_status)VX_SUCCESS != status)
+                {
+                    APP_PRINTF("Unable to allocate single raw image buffer!\n");
+                    break;
+                }
+            }
+        }
+    }
+
+    return status;
+}
+
+vx_status delete_raw_image_buffers(RawImgObj *imgObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES])
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 bufq, ch, ctr;
+    vx_size num_ch;
+    vx_uint32 num_exposures;
+    vx_bool line_interleaved = vx_false_e;
+
+    APP_PRINTF("Deleting Buffers \n");
+
+    for(bufq = 0; bufq < imgObj->bufq_depth; bufq++)
+    {
+        vx_int32 l;
+        vxQueryObjectArray(imgObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        ctr = 0;
+        for(ch = 0; ch < num_ch; ch++)
+        {
+            tivx_raw_image image = (tivx_raw_image)vxGetObjectArrayItem(imgObj->arr[bufq], ch);
+
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_NUM_EXPOSURES, &num_exposures, sizeof(num_exposures));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_LINE_INTERLEAVED, &line_interleaved, sizeof(line_interleaved));
+
+            if(line_interleaved == vx_true_e)
+                num_exposures = 1;
+
+            for(l = 0; l < num_exposures; l++)
+            {
+                APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[bufq][ctr + l], sizes[bufq][ctr + l]);
+            }
+
+            status = delete_single_raw_image_buffer
+                    (
+                        image,
+                        &virtAddr[bufq][ctr],
+                        &sizes[bufq][ctr]
+                    );
+
+            if((vx_status)VX_SUCCESS != status)
+            {
+                APP_PRINTF("Unable to delete single image buffer!\n");
+                break;
+            }
+
+            ctr += num_exposures;
+            tivxReleaseRawImage(&image);
+        }
+    }
+
+    return status;
+}
+
+vx_status assign_raw_image_buffers(RawImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch, ctr, l;
+    vx_size num_ch;
+
+    vxQueryObjectArray(imgObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Assigning Buffers \n");
+
+    ctr = 0;
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        vx_uint32 num_exposures;
+        vx_bool line_interleaved = vx_false_e;
+
+        tivx_raw_image image = (tivx_raw_image)vxGetObjectArrayItem(imgObj->arr[bufq], ch);
+
+        tivxQueryRawImage(image, TIVX_RAW_IMAGE_NUM_EXPOSURES, &num_exposures, sizeof(num_exposures));
+        tivxQueryRawImage(image, TIVX_RAW_IMAGE_LINE_INTERLEAVED, &line_interleaved, sizeof(line_interleaved));
+
+        if(line_interleaved == vx_true_e)
+            num_exposures = 1;
+
+        for(l = 0; l < num_exposures; l++)
+        {
+            APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[ctr + l], sizes[ctr + l]);
+        }
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = assign_single_raw_image_buffer(image, &virtAddr[ctr], &sizes[ctr], num_exposures);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to assign single image buffer!\n");
+            break;
+        }
+
+        ctr += num_exposures;
+        tivxReleaseRawImage(&image);
+    }
+
+    return status;
+}
+
+vx_status release_raw_image_buffers(RawImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch, ctr, l;
+    vx_size num_ch;
+    vx_uint32 num_exposures;
+    vx_bool line_interleaved = vx_false_e;
+
+    vxQueryObjectArray(imgObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Releasing Buffers \n");
+
+    ctr = 0;
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        tivx_raw_image image = (tivx_raw_image)vxGetObjectArrayItem(imgObj->arr[bufq], ch);
+        tivxQueryRawImage(image, TIVX_RAW_IMAGE_NUM_EXPOSURES, &num_exposures, sizeof(num_exposures));
+        tivxQueryRawImage(image, TIVX_RAW_IMAGE_LINE_INTERLEAVED, &line_interleaved, sizeof(line_interleaved));
+
+        if(line_interleaved == vx_true_e)
+            num_exposures = 1;
+
+        for(l = 0; l < num_exposures; l++)
+        {
+            APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[ctr + l], sizes[ctr + l]);
+        }
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = release_single_raw_image_buffer(image, &virtAddr[ctr], &sizes[ctr], num_exposures);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to assign single image buffer!\n");
+            break;
+        }
+
+        ctr += num_exposures;
+        tivxReleaseRawImage(&image);
+    }
+
     return status;
 }
 
@@ -386,8 +710,6 @@ vx_status release_image_buffers(ImgObj *imgObj, void *virtAddr[], vx_uint32 size
 
     return status;
 }
-
-static vx_uint32 get_tensor_bitdepth(vx_enum tensor_type);
 
 vx_status allocate_single_tensor_buffer(vx_tensor tensor, void *virtAddr[], vx_uint32 sizes[])
 {
@@ -865,6 +1187,114 @@ vx_status writeTensor(char* file_name, vx_tensor tensor_o)
         {
             fclose(fp);
         }
+    }
+
+    return(status);
+}
+
+vx_status readRawImage(char* file_name, tivx_raw_image image)
+{
+    vx_status status;
+
+    status = vxGetStatus((vx_reference)image);
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        FILE * fp = fopen(file_name,"rb");
+        vx_int32  j;
+
+        if(fp == NULL)
+        {
+            APP_ERROR("Unable to open file %s \n", file_name);
+            return (VX_FAILURE);
+        }
+
+        {
+            vx_uint32 width, height;
+            vx_imagepatch_addressing_t image_addr;
+            vx_rectangle_t rect;
+            vx_map_id map_id;
+            void *data_ptr;
+            vx_uint32 num_bytes = 1;
+            tivx_raw_image_format_t format[3];
+            vx_int32 plane, num_planes, plane_size;
+            vx_uint32 num_exposures;
+            vx_bool line_interleaved = vx_false_e;
+
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_WIDTH, &width, sizeof(vx_uint32));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_HEIGHT, &height, sizeof(vx_uint32));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_FORMAT, &format, sizeof(format));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_NUM_EXPOSURES, &num_exposures, sizeof(num_exposures));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_LINE_INTERLEAVED, &line_interleaved, sizeof(line_interleaved));
+
+            if(line_interleaved == vx_true_e)
+            {
+                num_planes = 1;
+            }
+            else
+            {
+                num_planes = num_exposures;
+            }
+
+            if( format[0].pixel_container == TIVX_RAW_IMAGE_16_BIT )
+            {
+                num_bytes = 2;
+            }
+            else if( format[0].pixel_container == TIVX_RAW_IMAGE_8_BIT )
+            {
+                num_bytes = 1;
+            }
+            else if( format[0].pixel_container == TIVX_RAW_IMAGE_P12_BIT )
+            {
+                num_bytes = 0;
+            }
+
+            rect.start_x = 0;
+            rect.start_y = 0;
+            rect.end_x = width;
+            rect.end_y = height;
+
+            for (plane = 0; plane < num_planes; plane++)
+            {
+                tivxMapRawImagePatch(image,
+                    &rect,
+                    plane,
+                    &map_id,
+                    &image_addr,
+                    &data_ptr,
+                    VX_WRITE_ONLY,
+                    VX_MEMORY_TYPE_HOST,
+                    TIVX_RAW_IMAGE_PIXEL_BUFFER
+                    );
+
+                num_bytes = 0;
+                if(line_interleaved == vx_true_e)
+                {
+                    for (j = 0; j < (image_addr.dim_y * num_exposures); j++)
+                    {
+                        num_bytes += fread(data_ptr, 1, image_addr.dim_x * num_bytes, fp);
+                        data_ptr += image_addr.stride_y;
+                    }
+                }
+                else
+                {
+                    for (j = 0; j < image_addr.dim_y; j++)
+                    {
+                        num_bytes += fread(data_ptr, 1, image_addr.dim_x * num_bytes, fp);
+                        data_ptr += image_addr.stride_y;
+                    }
+                }
+
+                plane_size = (image_addr.dim_y * image_addr.dim_x* num_bytes);
+
+                if(num_bytes != plane_size)
+                    APP_ERROR("Plane [%d] bytes read = %d, expected = %d\n", plane, num_bytes, plane_size);
+
+                tivxUnmapRawImagePatch(image, map_id);
+            }
+        }
+
+        fclose(fp);
     }
 
     return(status);
