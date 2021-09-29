@@ -108,7 +108,7 @@ static vx_status tiovx_ldc_module_configure_dcc_params(vx_context context, TIOVX
 
                 if(bytes_read != dcc_buff_size)
                 {
-                    TIOVX_MODULE_ERROR("[LDC-MODULE] DCC config bytes read %d not matching bytes exptected %d \n", bytes_read, dcc_buff_size);
+                    TIOVX_MODULE_ERROR("[LDC-MODULE] DCC config bytes read %d not matching bytes expected %d \n", bytes_read, dcc_buff_size);
                     status = VX_FAILURE;
                 }
 
@@ -123,6 +123,7 @@ static vx_status tiovx_ldc_module_configure_dcc_params(vx_context context, TIOVX
 
     return status;
 }
+
 static vx_status tiovx_ldc_module_configure_mesh_params(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -609,12 +610,12 @@ vx_status tiovx_ldc_module_deinit(TIOVXLDCModuleObj *obj)
 
         if((vx_status)VX_SUCCESS == status)
         {
-            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing scaler output file prefix array!\n");
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing output file prefix array!\n");
             status = vxReleaseArray(&obj->file_prefix);
         }
         if((vx_status)VX_SUCCESS == status)
         {
-            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing scaler output write command object!\n");
+            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing output write command object!\n");
             status = vxReleaseUserDataObject(&obj->write_cmd);
         }
     }
@@ -631,13 +632,11 @@ vx_status tiovx_ldc_module_delete(TIOVXLDCModuleObj *obj)
         TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing node reference!\n");
         status = vxReleaseNode(&obj->node);
     }
-    if(obj->write_node != NULL)
+
+    if(((vx_status)VX_SUCCESS == status) && (obj->write_node != NULL))
     {
-        if((vx_status)VX_SUCCESS == status)
-        {
-            TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing write node reference!\n");
-            status = vxReleaseNode(&obj->write_node);
-        }
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing write node reference!\n");
+        status = vxReleaseNode(&obj->write_node);
     }
 
     return status;
@@ -676,14 +675,6 @@ vx_status tiovx_ldc_module_create(vx_graph graph, TIOVXLDCModuleObj *obj, vx_obj
                                 output0_img,
                                 output1_img);
 
-    vxReleaseImage(&input_img);
-    vxReleaseImage(&output0_img);
-
-    if(obj->en_output1 == 1)
-    {
-        vxReleaseImage(&output1_img);
-    }
-
     status = vxGetStatus((vx_reference)obj->node);
     if((vx_status)VX_SUCCESS == status)
     {
@@ -695,6 +686,14 @@ vx_status tiovx_ldc_module_create(vx_graph graph, TIOVXLDCModuleObj *obj, vx_obj
     else
     {
         TIOVX_MODULE_ERROR("[LDC-MODULE] Unable to create LDC node ! \n");
+    }
+
+    vxReleaseImage(&input_img);
+    vxReleaseImage(&output0_img);
+
+    if(obj->en_output1 == 1)
+    {
+        vxReleaseImage(&output1_img);
     }
 
     if(obj->en_out_image_write == 1)

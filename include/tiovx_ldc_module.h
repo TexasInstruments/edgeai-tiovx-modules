@@ -169,7 +169,7 @@ typedef struct {
     /*! User data object for DCC config parameter, used as node parameter of LDC node */
     vx_user_data_object dcc_config;
 
-    /*! Output file path for LDC node output */
+    /*! DCC config file path for LDC */
     vx_char dcc_config_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
 
     /*! LDC input Image Object  */
