@@ -1215,7 +1215,8 @@ vx_status readRawImage(char* file_name, tivx_raw_image image)
             vx_rectangle_t rect;
             vx_map_id map_id;
             void *data_ptr;
-            vx_uint32 num_bytes = 1;
+            vx_uint32 bpp = 1;
+            vx_uint32 num_bytes;
             tivx_raw_image_format_t format[3];
             vx_int32 plane, num_planes, plane_size;
             vx_uint32 num_exposures;
@@ -1238,15 +1239,15 @@ vx_status readRawImage(char* file_name, tivx_raw_image image)
 
             if( format[0].pixel_container == TIVX_RAW_IMAGE_16_BIT )
             {
-                num_bytes = 2;
+                bpp = 2;
             }
             else if( format[0].pixel_container == TIVX_RAW_IMAGE_8_BIT )
             {
-                num_bytes = 1;
+                bpp = 1;
             }
             else if( format[0].pixel_container == TIVX_RAW_IMAGE_P12_BIT )
             {
-                num_bytes = 0;
+                bpp = 0;
             }
 
             rect.start_x = 0;
@@ -1267,28 +1268,139 @@ vx_status readRawImage(char* file_name, tivx_raw_image image)
                     TIVX_RAW_IMAGE_PIXEL_BUFFER
                     );
 
+                uint8_t *pIn = (uint8_t *)data_ptr;
                 num_bytes = 0;
                 if(line_interleaved == vx_true_e)
                 {
                     for (j = 0; j < (image_addr.dim_y * num_exposures); j++)
                     {
-                        num_bytes += fread(data_ptr, 1, image_addr.dim_x * num_bytes, fp);
-                        data_ptr += image_addr.stride_y;
+                        num_bytes += fread(pIn, 1, image_addr.dim_x * bpp, fp);
+                        pIn += image_addr.stride_y;
                     }
                 }
                 else
                 {
                     for (j = 0; j < image_addr.dim_y; j++)
                     {
-                        num_bytes += fread(data_ptr, 1, image_addr.dim_x * num_bytes, fp);
-                        data_ptr += image_addr.stride_y;
+                        num_bytes += fread(pIn, 1, image_addr.dim_x * bpp, fp);
+                        pIn += image_addr.stride_y;
                     }
                 }
 
-                plane_size = (image_addr.dim_y * image_addr.dim_x* num_bytes);
+                plane_size = (image_addr.dim_y * image_addr.dim_x* bpp);
 
                 if(num_bytes != plane_size)
                     APP_ERROR("Plane [%d] bytes read = %d, expected = %d\n", plane, num_bytes, plane_size);
+
+                tivxUnmapRawImagePatch(image, map_id);
+            }
+        }
+
+        fclose(fp);
+    }
+
+    return(status);
+}
+
+vx_status writeRawImage(char* file_name, tivx_raw_image image)
+{
+    vx_status status;
+
+    status = vxGetStatus((vx_reference)image);
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        FILE * fp = fopen(file_name,"wb");
+        vx_int32  j;
+
+        if(fp == NULL)
+        {
+            APP_ERROR("Unable to open file %s \n", file_name);
+            return (VX_FAILURE);
+        }
+
+        {
+            vx_uint32 width, height;
+            vx_imagepatch_addressing_t image_addr;
+            vx_rectangle_t rect;
+            vx_map_id map_id;
+            void *data_ptr;
+            vx_uint32 bpp = 1;
+            vx_uint32 num_bytes;
+            tivx_raw_image_format_t format[3];
+            vx_int32 plane, num_planes, plane_size;
+            vx_uint32 num_exposures;
+            vx_bool line_interleaved = vx_false_e;
+
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_WIDTH, &width, sizeof(vx_uint32));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_HEIGHT, &height, sizeof(vx_uint32));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_FORMAT, &format, sizeof(format));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_NUM_EXPOSURES, &num_exposures, sizeof(num_exposures));
+            tivxQueryRawImage(image, TIVX_RAW_IMAGE_LINE_INTERLEAVED, &line_interleaved, sizeof(line_interleaved));
+
+            if(line_interleaved == vx_true_e)
+            {
+                num_planes = 1;
+            }
+            else
+            {
+                num_planes = num_exposures;
+            }
+
+            if( format[0].pixel_container == TIVX_RAW_IMAGE_16_BIT )
+            {
+                bpp = 2;
+            }
+            else if( format[0].pixel_container == TIVX_RAW_IMAGE_8_BIT )
+            {
+                bpp = 1;
+            }
+            else if( format[0].pixel_container == TIVX_RAW_IMAGE_P12_BIT )
+            {
+                bpp = 0;
+            }
+
+            rect.start_x = 0;
+            rect.start_y = 0;
+            rect.end_x = width;
+            rect.end_y = height;
+
+            for (plane = 0; plane < num_planes; plane++)
+            {
+                tivxMapRawImagePatch(image,
+                    &rect,
+                    plane,
+                    &map_id,
+                    &image_addr,
+                    &data_ptr,
+                    VX_READ_ONLY,
+                    VX_MEMORY_TYPE_HOST,
+                    TIVX_RAW_IMAGE_PIXEL_BUFFER
+                    );
+
+                uint8_t *pIn = (uint8_t *)data_ptr;
+                num_bytes = 0;
+                if(line_interleaved == vx_true_e)
+                {
+                    for (j = 0; j < (image_addr.dim_y * num_exposures); j++)
+                    {
+                        num_bytes += fwrite(pIn, 1, image_addr.dim_x * bpp, fp);
+                        pIn += image_addr.stride_y;
+                    }
+                }
+                else
+                {
+                    for (j = 0; j < image_addr.dim_y; j++)
+                    {
+                        num_bytes += fwrite(pIn, 1, image_addr.dim_x * bpp, fp);
+                        pIn += image_addr.stride_y;
+                    }
+                }
+
+                plane_size = (image_addr.dim_y * image_addr.dim_x* bpp);
+
+                if(num_bytes != plane_size)
+                    APP_ERROR("Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
 
                 tivxUnmapRawImagePatch(image, map_id);
             }

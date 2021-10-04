@@ -898,7 +898,7 @@ vx_status tiovx_viss_module_create(vx_graph graph, TIOVXVISSModuleObj *obj, vx_o
         vx_bool replicate[13];
 
         replicate[0] = vx_false_e;
-        replicate[1] = vx_true_e;
+        replicate[1] = vx_false_e;
         replicate[2] = vx_false_e;
         replicate[3] = vx_true_e;
 
