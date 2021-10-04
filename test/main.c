@@ -74,7 +74,7 @@
 #define APP_MODULES_TEST_COLOR_BLEND (1)
 #define APP_MODULES_TEST_AEWB (1)
 #define APP_MODULES_TEST_LDC (1)
-
+#define APP_MODULES_TEST_VISS (1)
 
 int32_t appInit()
 {

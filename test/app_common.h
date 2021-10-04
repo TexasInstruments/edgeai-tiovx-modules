@@ -169,5 +169,6 @@ vx_status readImage(char* file_name, vx_image img);
 vx_status writeImage(char* file_name, vx_image img);
 
 vx_status readRawImage(char* file_name, tivx_raw_image img);
+vx_status writeRawImage(char* file_name, tivx_raw_image img);
 
 #endif

@@ -94,6 +94,8 @@ static vx_status app_verify_graph(AppObj *obj);
 static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
+static vx_status update2Aresults(vx_user_data_object ae_awb_result);
+
 vx_status app_modules_viss_test(vx_int32 argc, vx_char* argv[])
 {
     AppObj *obj = &gAppObj;
@@ -221,7 +223,7 @@ static vx_status app_create_graph(AppObj *obj)
     }
 
     graph_parameter_index = 0;
-/*
+
     if((vx_status)VX_SUCCESS == status)
     {
         status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 1);
@@ -232,7 +234,7 @@ static vx_status app_create_graph(AppObj *obj)
         graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->vissObj.ae_awb_result_handle[0];
         graph_parameter_index++;
     }
-*/
+
     if((vx_status)VX_SUCCESS == status)
     {
         status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 3);
@@ -332,12 +334,13 @@ static vx_status app_run_graph(AppObj *obj)
     assign_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr[bufq], h3aSizes[bufq], bufq);
 
     readRawImage(input_filename, vissObj->input.image_handle[0]);
+    update2Aresults(vissObj->ae_awb_result_handle[0]);
 
     APP_PRINTF("Enqueueing input raw buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&vissObj->input.image_handle[0], 1);
 
-//    APP_PRINTF("Enqueueing ae-awb buffers!\n");
-//    vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&vissObj->ae_awb_result_handle[0], 1);
+    APP_PRINTF("Enqueueing ae-awb buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&vissObj->ae_awb_result_handle[0], 1);
 
     APP_PRINTF("Enqueueing output image buffers!\n");
     vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&vissObj->output2.image_handle[0], 1);
@@ -357,7 +360,7 @@ static vx_status app_run_graph(AppObj *obj)
 
     vxGraphParameterDequeueDoneRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
     vxGraphParameterDequeueDoneRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
-//    vxGraphParameterDequeueDoneRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&aewb_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&aewb_o, 1, &num_refs);
     vxGraphParameterDequeueDoneRef(obj->graph, vissObj->h3a_stats_graph_parameter_index, (vx_reference*)&h3a_o, 1, &num_refs);
 
     writeImage(output_filename, vissObj->output2.image_handle[0]);
@@ -372,6 +375,36 @@ static vx_status app_run_graph(AppObj *obj)
     delete_image_buffers(&vissObj->output2, outAddr, outSizes);
     delete_user_data_buffers(vissObj->ae_awb_result_arr, aewbAddr, aewbSizes, bufq);
     delete_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr, h3aSizes, bufq);
+
+    return status;
+}
+
+static vx_status update2Aresults(vx_user_data_object ae_awb_result)
+{
+    vx_status status = VX_SUCCESS;
+
+    status = vxGetStatus((vx_reference)ae_awb_result);
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        uint8_t * data_buf;
+        vx_map_id ae_awb_result_map_id;
+
+        vxMapUserDataObject(
+            ae_awb_result,
+            0,
+            sizeof(tivx_ae_awb_params_t),
+            &ae_awb_result_map_id,
+            (void **)&data_buf,
+            VX_WRITE_ONLY,
+            VX_MEMORY_TYPE_HOST,
+            0
+        );
+		/* Currently just setting it to zero, but will be computed based on previous VISS h3a stats and updated */
+        memset(data_buf, 0, sizeof(tivx_ae_awb_params_t));
+
+        vxUnmapUserDataObject(ae_awb_result, ae_awb_result_map_id);
+    }
 
     return status;
 }
