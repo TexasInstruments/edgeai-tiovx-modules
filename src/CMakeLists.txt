@@ -11,7 +11,6 @@ add_library(${PROJECT_NAME} SHARED
             tiovx_dl_pre_proc_module.c
             tiovx_dl_color_blend_module.c
             tiovx_sensor_module.c
-            tiovx_aewb_module.c
             tiovx_viss_module.c
             tiovx_ldc_module.c)
 
