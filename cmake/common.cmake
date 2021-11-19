@@ -19,10 +19,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
 set(TARGET_PLATFORM     J7)
 set(TARGET_CPU          A72)
 set(TARGET_OS           LINUX)
+set(TARGET_SOC          J721E)
 
 add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
     -DTARGET_OS=${TARGET_OS}
+    -DSOC_${TARGET_OS}
 )
 
 link_directories(/usr/lib/aarch64-linux-gnu
