@@ -65,7 +65,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <TI/tivx.h>
-#include <utils/app_init/include/app_init.h>
+#include <app_init.h>
 
 #define APP_MODULES_TEST_MULTI_SCALER (1)
 #define APP_MODULES_TEST_COLOR_CONVERT (1)
