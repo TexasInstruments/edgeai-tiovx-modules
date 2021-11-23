@@ -20,6 +20,7 @@ set(TARGET_PLATFORM     J7)
 set(TARGET_CPU          A72)
 set(TARGET_OS           LINUX)
 set(TARGET_SOC          J721E)
+set(TARGET_SOC_LOWER    j721e)
 
 add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
@@ -38,9 +39,9 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${PROJECT_SOURCE_DIR}/..
                     ${PROJECT_SOURCE_DIR}/../include
                     /usr/local/include
-                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC}/rtos/common
-                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC}/rtos/common_linux
-                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC}/linux
+                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common
+                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common_linux
+                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/linux
                     /usr/include/processor_sdk/ivision
                     /usr/include/processor_sdk/imaging
                     /usr/include/processor_sdk/imaging/kernels/include
