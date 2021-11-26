@@ -63,11 +63,12 @@
 #include "app_common.h"
 #include "tiovx_sensor_module.h"
 #include "tiovx_viss_module.h"
+#include "ti_2a_wrapper.h"
 
 #define APP_BUFQ_DEPTH   (1)
 
-#define INPUT_WIDTH  (1936)
-#define INPUT_HEIGHT (1096)
+#define INPUT_WIDTH  (1920)
+#define INPUT_HEIGHT (1080)
 
 #define OUTPUT_WIDTH  (INPUT_WIDTH)
 #define OUTPUT_HEIGHT (INPUT_HEIGHT)
@@ -83,6 +84,14 @@ typedef struct {
 
     TIOVXVISSModuleObj  vissObj;
 
+    tivx_aewb_config_t aewbConfig;
+
+    TI_2A_wrapper aewbObj;
+
+    sensor_config_get sensor_in_data;
+
+    sensor_config_set sensor_out_data;
+
 } AppObj;
 
 AppObj gAppObj;
@@ -93,8 +102,6 @@ static vx_status app_create_graph(AppObj *obj);
 static vx_status app_verify_graph(AppObj *obj);
 static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
-
-static vx_status update2Aresults(vx_user_data_object ae_awb_result);
 
 vx_status app_modules_viss_test(vx_int32 argc, vx_char* argv[])
 {
@@ -148,19 +155,19 @@ static vx_status app_init(AppObj *obj)
 
         SensorObj *sensorObj = &obj->sensorObj;
         tiovx_querry_sensor(sensorObj);
-        tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX390_UB953_D3");
+        tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX219_RPI");
 
-        snprintf(vissObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/imx390/dcc_viss_wdr.bin");
+        snprintf(vissObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/imx219/dcc_viss.bin");
 
         vissObj->input.bufq_depth = APP_BUFQ_DEPTH;
-        /* information here is hardcoded for IMX390 sensor */
+        /* information here is hardcoded for IMX219 sensor */
         /* Typically these information should be obtained by querying the sensor */
         vissObj->input.params.width  = INPUT_WIDTH;
         vissObj->input.params.height = INPUT_HEIGHT;
         vissObj->input.params.num_exposures = 1;
         vissObj->input.params.line_interleaved = vx_false_e;
-        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_16_BIT;
-        vissObj->input.params.format[0].msb = 11;
+        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_8_BIT;
+        vissObj->input.params.format[0].msb = 7;
         vissObj->input.params.meta_height_before = 0;
         vissObj->input.params.meta_height_after = 0;
 
@@ -184,6 +191,52 @@ static vx_status app_init(AppObj *obj)
         /* Initialize modules */
         status = tiovx_viss_module_init(obj->context, vissObj, sensorObj);
         APP_PRINTF("VISS Init Done! \n");
+
+        char *aewb_dcc_file = "/opt/imaging/imx219/dcc_2a.bin";
+        FILE *aewb_fp = NULL;
+
+        aewb_fp = fopen(aewb_dcc_file, "rb");
+        if(aewb_fp == NULL)
+        {
+            APP_ERROR("Unable to open 2A DCC file path = %s \n", aewb_dcc_file);
+            return VX_FAILURE;
+        }
+
+        fseek(aewb_fp, 0, SEEK_END);
+        uint32_t aewb_dcc_file_size = ftell(aewb_fp);
+        fseek(aewb_fp, 0, SEEK_SET);
+
+        uint8_t *aewb_dcc_buf = (uint8_t *)malloc(aewb_dcc_file_size);
+        if(aewb_dcc_buf == NULL)
+        {
+            APP_ERROR("Unable to allocate %d bytes for aewb_dcc_buf \n", aewb_dcc_file_size);
+            return VX_FAILURE;
+        }
+
+        uint32_t read_size = fread(aewb_dcc_buf, sizeof(uint8_t), aewb_dcc_file_size, aewb_fp);
+
+        if(read_size != aewb_dcc_file_size)
+        {
+            APP_ERROR("Bytes read %d bytes is not same as file size %d \n", read_size, aewb_dcc_file_size);
+            return VX_FAILURE;
+        }
+
+        obj->aewbConfig.sensor_dcc_id       = sensorObj->sensorParams.dccId;
+        obj->aewbConfig.sensor_img_format   = 0; /*!<Image Format : BAYER = 0x0, Rest unsupported */
+        obj->aewbConfig.sensor_img_phase    = 3; /*!<Image Format : BGGR = 0, GBRG = 1, GRBG = 2, RGGB = 3 */
+
+        obj->aewbConfig.ae_mode = ALGORITHMS_ISS_AE_AUTO; /*!<AWB Mode : 0 = Auto, 1 = Manual, 2 = Disabled */
+        obj->aewbConfig.awb_mode = ALGORITHMS_ISS_AWB_AUTO; /*!<AE Mode : 0 = Auto, 1 = Manual, 2 = Disabled */
+
+        obj->aewbConfig.awb_num_skip_frames = 0; /*!<0 = Process every frame */
+        obj->aewbConfig.ae_num_skip_frames  = 0; /*!<0 = Process every frame */
+        obj->aewbConfig.channel_id          = 0; /*!<channel ID */
+
+        status = TI_2A_wrapper_create(&obj->aewbObj, &obj->aewbConfig, aewb_dcc_buf, aewb_dcc_file_size);
+        if(status == VX_FAILURE)
+        {
+            APP_ERROR("Error during 2A create!\n");
+        }
     }
 
     return status;
@@ -203,6 +256,8 @@ static void app_deinit(AppObj *obj)
 static void app_delete_graph(AppObj *obj)
 {
     tiovx_viss_module_delete(&obj->vissObj);
+
+    TI_2A_wrapper_delete(&obj->aewbObj);
 
     vxReleaseGraph(&obj->graph);
 }
@@ -299,8 +354,8 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/imx390_raw_image_1936x1096_16bpp_exp0.raw";
-    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/imx390_fisheye_1936x1096_nv12.yuv";
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/imx219_1920x1080_capture.raw";
+    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/imx219_1920x1080_capture_nv12.yuv";
 
     tivx_raw_image input_o;
     vx_image output_o;
@@ -310,6 +365,7 @@ static vx_status app_run_graph(AppObj *obj)
     TIOVXVISSModuleObj *vissObj = &obj->vissObj;
     vx_int32 bufq;
     uint32_t num_refs;
+    int32_t frame_count;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *outAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
@@ -333,38 +389,62 @@ static vx_status app_run_graph(AppObj *obj)
     assign_user_data_buffers(vissObj->ae_awb_result_arr, aewbAddr[bufq], aewbSizes[bufq], bufq);
     assign_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr[bufq], h3aSizes[bufq], bufq);
 
-    readRawImage(input_filename, vissObj->input.image_handle[0]);
-    update2Aresults(vissObj->ae_awb_result_handle[0]);
+    frame_count = 0;
+    while (frame_count < 10)
+    {
+        APP_ERROR("Running frame %d\n", frame_count);
+        readRawImage(input_filename, vissObj->input.image_handle[0]);
 
-    APP_PRINTF("Enqueueing input raw buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&vissObj->input.image_handle[0], 1);
+        APP_PRINTF("Enqueueing input raw buffers!\n");
+        vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&vissObj->input.image_handle[0], 1);
 
-    APP_PRINTF("Enqueueing ae-awb buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&vissObj->ae_awb_result_handle[0], 1);
+        APP_PRINTF("Enqueueing ae-awb buffers!\n");
+        vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&vissObj->ae_awb_result_handle[0], 1);
 
-    APP_PRINTF("Enqueueing output image buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&vissObj->output2.image_handle[0], 1);
+        APP_PRINTF("Enqueueing output image buffers!\n");
+        vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&vissObj->output2.image_handle[0], 1);
 
-    APP_PRINTF("Enqueueing h3a stats buffers!\n");
-    vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->h3a_stats_graph_parameter_index, (vx_reference*)&vissObj->h3a_stats_handle[0], 1);
+        APP_PRINTF("Enqueueing h3a stats buffers!\n");
+        vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->h3a_stats_graph_parameter_index, (vx_reference*)&vissObj->h3a_stats_handle[0], 1);
 
-    APP_PRINTF("Processing!\n");
-    status = vxScheduleGraph(obj->graph);
-    if((vx_status)VX_SUCCESS != status) {
-      APP_PRINTF("Schedule Graph failed: %d!\n", status);
+        APP_PRINTF("Processing!\n");
+        status = vxScheduleGraph(obj->graph);
+        if((vx_status)VX_SUCCESS != status) {
+            APP_PRINTF("Schedule Graph failed: %d!\n", status);
+        }
+        status = vxWaitGraph(obj->graph);
+        if((vx_status)VX_SUCCESS != status) {
+            APP_PRINTF("Wait Graph failed: %d!\n", status);
+        }
+
+        vxGraphParameterDequeueDoneRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
+        vxGraphParameterDequeueDoneRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
+        vxGraphParameterDequeueDoneRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&aewb_o, 1, &num_refs);
+        vxGraphParameterDequeueDoneRef(obj->graph, vissObj->h3a_stats_graph_parameter_index, (vx_reference*)&h3a_o, 1, &num_refs);
+
+        writeImage(output_filename, vissObj->output2.image_handle[0]);
+        //writeUserData(output_filename, vissObj->h3a_stats_handle[0]);
+
+        if((VX_SUCCESS == vxGetStatus((vx_reference)aewb_o)) && (VX_SUCCESS == vxGetStatus((vx_reference)h3a_o)))
+        {
+            tivx_h3a_data_t *h3a_buf;
+            vx_map_id h3a_buf_map_id;
+
+            tivx_ae_awb_params_t *aewb_buf;
+            vx_map_id aewb_buf_map_id;
+
+            /* Below works only for single-channel */
+            vxMapUserDataObject(h3a_o, 0, sizeof(tivx_h3a_data_t), &h3a_buf_map_id, (void **)&h3a_buf, VX_READ_ONLY, VX_MEMORY_TYPE_HOST, 0);
+            vxMapUserDataObject(aewb_o, 0, sizeof(tivx_ae_awb_params_t), &aewb_buf_map_id, (void **)&aewb_buf, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST, 0);
+
+            TI_2A_wrapper_process(&obj->aewbObj, &obj->aewbConfig, h3a_buf, &obj->sensor_in_data, aewb_buf, &obj->sensor_out_data);
+
+            vxUnmapUserDataObject(h3a_o, h3a_buf_map_id);
+            vxUnmapUserDataObject(aewb_o, aewb_buf_map_id);
+        }
+
+        frame_count++;
     }
-    status = vxWaitGraph(obj->graph);
-    if((vx_status)VX_SUCCESS != status) {
-      APP_PRINTF("Wait Graph failed: %d!\n", status);
-    }
-
-    vxGraphParameterDequeueDoneRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
-    vxGraphParameterDequeueDoneRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
-    vxGraphParameterDequeueDoneRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&aewb_o, 1, &num_refs);
-    vxGraphParameterDequeueDoneRef(obj->graph, vissObj->h3a_stats_graph_parameter_index, (vx_reference*)&h3a_o, 1, &num_refs);
-
-    writeImage(output_filename, vissObj->output2.image_handle[0]);
-    //writeUserData(output_filename, vissObj->h3a_stats_handle[0]);
 
     release_raw_image_buffers(&vissObj->input, inAddr[bufq], inSizes[bufq], bufq);
     release_image_buffers(&vissObj->output2, outAddr[bufq], outSizes[bufq], bufq);
@@ -375,36 +455,6 @@ static vx_status app_run_graph(AppObj *obj)
     delete_image_buffers(&vissObj->output2, outAddr, outSizes);
     delete_user_data_buffers(vissObj->ae_awb_result_arr, aewbAddr, aewbSizes, bufq);
     delete_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr, h3aSizes, bufq);
-
-    return status;
-}
-
-static vx_status update2Aresults(vx_user_data_object ae_awb_result)
-{
-    vx_status status = VX_SUCCESS;
-
-    status = vxGetStatus((vx_reference)ae_awb_result);
-
-    if((vx_status)VX_SUCCESS == status)
-    {
-        uint8_t * data_buf;
-        vx_map_id ae_awb_result_map_id;
-
-        vxMapUserDataObject(
-            ae_awb_result,
-            0,
-            sizeof(tivx_ae_awb_params_t),
-            &ae_awb_result_map_id,
-            (void **)&data_buf,
-            VX_WRITE_ONLY,
-            VX_MEMORY_TYPE_HOST,
-            0
-        );
-		/* Currently just setting it to zero, but will be computed based on previous VISS h3a stats and updated */
-        memset(data_buf, 0, sizeof(tivx_ae_awb_params_t));
-
-        vxUnmapUserDataObject(ae_awb_result, ae_awb_result_map_id);
-    }
 
     return status;
 }
