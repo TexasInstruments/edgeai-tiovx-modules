@@ -20,11 +20,12 @@ set(TARGET_PLATFORM     J7)
 set(TARGET_CPU          A72)
 set(TARGET_OS           LINUX)
 set(TARGET_SOC          J721E)
+set(TARGET_SOC_LOWER    j721e)
 
 add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
     -DTARGET_OS=${TARGET_OS}
-    -DSOC_${TARGET_OS}
+    -DSOC_${TARGET_SOC}
 )
 
 link_directories(/usr/lib/aarch64-linux-gnu
@@ -38,9 +39,9 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${PROJECT_SOURCE_DIR}/..
                     ${PROJECT_SOURCE_DIR}/../include
                     /usr/local/include
-                    /usr/include/processor_sdk/vision_apps/apps/basic_demos/app_rtos/common
-                    /usr/include/processor_sdk/vision_apps/apps/basic_demos/app_rtos/rtos_linux
-                    /usr/include/processor_sdk/vision_apps/apps/basic_demos/app_rtos/rtos_linux/mpu1
+                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common
+                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common_linux
+                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/linux
                     /usr/include/processor_sdk/ivision
                     /usr/include/processor_sdk/imaging
                     /usr/include/processor_sdk/imaging/algos/ae/include
