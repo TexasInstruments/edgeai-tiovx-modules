@@ -103,6 +103,8 @@ static vx_status app_verify_graph(AppObj *obj);
 static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
+static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
+
 vx_status app_modules_viss_test(vx_int32 argc, vx_char* argv[])
 {
     AppObj *obj = &gAppObj;
@@ -437,6 +439,8 @@ static vx_status app_run_graph(AppObj *obj)
             vxMapUserDataObject(h3a_o, 0, sizeof(tivx_h3a_data_t), &h3a_buf_map_id, (void **)&h3a_buf, VX_READ_ONLY, VX_MEMORY_TYPE_HOST, 0);
             vxMapUserDataObject(aewb_o, 0, sizeof(tivx_ae_awb_params_t), &aewb_buf_map_id, (void **)&aewb_buf, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST, 0);
 
+            IMX219_GetExpPrgFxn(&obj->sensor_in_data.ae_dynPrms);
+
             TI_2A_wrapper_process(&obj->aewbObj, &obj->aewbConfig, h3a_buf, &obj->sensor_in_data, aewb_buf, &obj->sensor_out_data);
 
             vxUnmapUserDataObject(h3a_o, h3a_buf_map_id);
@@ -457,4 +461,29 @@ static vx_status app_run_graph(AppObj *obj)
     delete_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr, h3aSizes, bufq);
 
     return status;
+}
+
+/* Typically this is obtained by querying the sensor */
+static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms)
+{
+    int32_t  status = 0;
+    uint8_t count = 0;
+
+    p_ae_dynPrms->targetBrightnessRange.min = 40;
+    p_ae_dynPrms->targetBrightnessRange.max = 50;
+    p_ae_dynPrms->targetBrightness = 45;
+    p_ae_dynPrms->threshold = 1;
+    p_ae_dynPrms->enableBlc = 1;
+    p_ae_dynPrms->exposureTimeStepSize = 1;
+
+    p_ae_dynPrms->exposureTimeRange[count].min = 100;
+    p_ae_dynPrms->exposureTimeRange[count].max = 33333;
+    p_ae_dynPrms->analogGainRange[count].min = 1024;
+    p_ae_dynPrms->analogGainRange[count].max = 8192;
+    p_ae_dynPrms->digitalGainRange[count].min = 256;
+    p_ae_dynPrms->digitalGainRange[count].max = 256;
+    count++;
+
+    p_ae_dynPrms->numAeDynParams = count;
+    return (status);
 }
