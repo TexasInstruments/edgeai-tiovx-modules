@@ -233,7 +233,7 @@ static vx_status app_create_graph(AppObj *obj)
     if(status == VX_SUCCESS)
     {
         status = vxSetGraphScheduleConfig(obj->graph,
-                    VX_GRAPH_SCHEDULE_MODE_QUEUE_AUTO,
+                    VX_GRAPH_SCHEDULE_MODE_QUEUE_MANUAL,
                     graph_parameter_index,
                     graph_parameters_queue_params_list);
     }
@@ -268,6 +268,8 @@ static vx_status app_run_graph(AppObj *obj)
 
     TIOVXMultiScalerModuleObj *scalerObj = &obj->scalerObj;
     vx_int32 bufq;
+    uint32_t num_refs;
+    int32_t frame_count;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *out1Addr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
@@ -287,7 +289,36 @@ static vx_status app_run_graph(AppObj *obj)
     assign_image_buffers(&scalerObj->output[0], out1Addr[bufq], out1Sizes[bufq], bufq);
     assign_image_buffers(&scalerObj->output[1], out2Addr[bufq], out2Sizes[bufq], bufq);
 
-    //status = vxProcessGraph(obj->graph);
+    frame_count = 0;
+    while (frame_count < 100)
+    {
+        vx_image input_o;
+        vx_image output0_o;
+        vx_image output1_o;
+
+        vxGraphParameterEnqueueReadyRef(obj->graph, scalerObj->input.graph_parameter_index, (vx_reference*)&scalerObj->input.image_handle[0], 1);
+        vxGraphParameterEnqueueReadyRef(obj->graph, scalerObj->output[0].graph_parameter_index, (vx_reference*)&scalerObj->output[0].image_handle[0], 1);
+        vxGraphParameterEnqueueReadyRef(obj->graph, scalerObj->output[1].graph_parameter_index, (vx_reference*)&scalerObj->output[1].image_handle[0], 1);
+
+        APP_ERROR("Processing frame = %d!\n", frame_count);
+        status = vxScheduleGraph(obj->graph);
+        if((vx_status)VX_SUCCESS != status) {
+            APP_ERROR("Schedule Graph failed: %d!\n", status);
+        }
+        APP_ERROR("Waiting frame = %d!\n", frame_count);
+        status = vxWaitGraph(obj->graph);
+        if((vx_status)VX_SUCCESS != status) {
+            APP_ERROR("Wait Graph failed: %d!\n", status);
+        }
+
+        vxGraphParameterDequeueDoneRef(obj->graph, scalerObj->input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
+        vxGraphParameterDequeueDoneRef(obj->graph, scalerObj->output[0].graph_parameter_index, (vx_reference*)&output0_o, 1, &num_refs);
+        vxGraphParameterDequeueDoneRef(obj->graph, scalerObj->output[1].graph_parameter_index, (vx_reference*)&output1_o, 1, &num_refs);
+
+        frame_count++;
+    }
+
+    APP_ERROR("Process done! frame_count = %d\n", frame_count);
 
     release_image_buffers(&scalerObj->input, inAddr[bufq], inSizes[bufq], bufq);
     release_image_buffers(&scalerObj->output[0], out1Addr[bufq], out1Sizes[bufq], bufq);
