@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2017 Texas Instruments Incorporated
+ * Copyright (c) 2021 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -59,137 +59,81 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+ #ifndef _TIOVX_COLOR_CONVERT_MODULE
+ #define _TIOVX_COLOR_CONVERT_MODULE
 
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <stdint.h>
-#include <TI/tivx.h>
-#include <app_init.h>
+/**
+ * \defgroup group_modules_pyramid Pyramid Node Module
+ *
+ * \brief This section contains module APIs for the TIOVX Pyramid node tivxVpacMscPyramidNode
+ *
+ * \ingroup group_modules
+ *
+ * @{
+ */
 
-#define APP_MODULES_TEST_MULTI_SCALER (1)
-#define APP_MODULES_TEST_COLOR_CONVERT (1)
-#define APP_MODULES_TEST_IMG_MOSAIC (1)
-#define APP_MODULES_TEST_PRE_PROC (1)
-#define APP_MODULES_TEST_COLOR_BLEND (1)
-#define APP_MODULES_TEST_LDC (1)
-#define APP_MODULES_TEST_VISS (1)
-#define APP_MODULES_TEST_PYRAMID (1)
+#include "tiovx_modules_common.h"
 
-int32_t appInit()
-{
-    int32_t status = 0;
+typedef struct {
+    vx_node node;
 
-    status = appCommonInit();
+    ImgObj     input;
+    PyramidObj output;
 
-    if(status==0)
-    {
-        tivxInit();
-        tivxHostInit();
-    }
-    return status;
-}
+    /* Input parameters */
+    vx_int32 num_channels;
+    vx_int32 width;
+    vx_int32 height;
 
-int32_t appDeInit()
-{
-    int32_t status = 0;
+} TIOVXPyramidModuleObj;
 
-    tivxHostDeInit();
-    tivxDeInit();
-    appCommonDeInit();
+/** \brief Pyramid module init helper function
+ *
+ * This Pyramid init helper function will create all the data objects required to create the Pyramid
+ * node
+ *
+ * \param [in]  context    OpenVX context which must be created using \ref vxCreateContext
+ * \param [out] obj        Pyramid Module object which gets populated with Pyramid node data objects
+ */
+vx_status tiovx_pyramid_module_init(vx_context context, TIOVXPyramidModuleObj *obj);
 
-    return status;
-}
+/** \brief Pyramid module deinit helper function
+ *
+ * This Pyramid deinit helper function will release all the data objects created during the \ref app_init_pyramid call
+ *
+ * \param [in,out] obj    Pyramid Module object which contains Pyramid node data objects which are released in this function
+ *
+ */
+vx_status tiovx_pyramid_module_deinit(TIOVXPyramidModuleObj *obj);
 
-int main(int argc, char *argv[])
-{
-    int status = 0;
+/** \brief Pyramid module delete helper function
+ *
+ * This Pyramid delete helper function will delete the pyramid node and write node that is created during the \ref app_create_graph_pyramid call
+ *
+ * \param [in,out] obj   Pyramid Module object which contains Pyramid node objects which are released in this function
+ *
+ */
+vx_status tiovx_pyramid_module_delete(TIOVXPyramidModuleObj *obj);
 
-    status = appInit();
+/** \brief Pyramid module create helper function
+ *
+ * This Pyramid create helper function will create the node using all the data objects created during the \ref app_init_pyramid call.
+ *
+ * \param [in]     graph          OpenVX graph that has been created using \ref vxCreateGraph and where the Pyramid node is created
+ * \param [in,out] obj            Pyramid Module object which contains Pyramid node and write node which are created in this function
+ * \param [in]     input_arr      Image input object array to Pyramid node.  Must be created separately, typically passed from output of capture node
+ * \param [in]     target_string  Targets on which the Pyramid node should run. Supported values are TIVX_TARGET_VPAC_MSC0, TIVX_TARGET_VPAC_MSC1
+ *
+ */
+vx_status tiovx_pyramid_module_create(vx_graph graph, TIOVXPyramidModuleObj *obj, vx_object_array input_arr, const char* target_string);
 
-#if (APP_MODULES_TEST_MULTI_SCALER)
-    if(status==0)
-    {
-        printf("Running multi-scaler module test\n");
-        int app_modules_scaler_test(int argc, char* argv[]);
+/** \brief Pyramid module release buffers helper function
+ *
+ * This Pyramid helper function will release the buffers alloted during vxVerifyGraph stage
+ *
+ * \param [in] obj  Pyramid Module object
+ *
+ */
+vx_status tiovx_pyramid_module_release_buffers(TIOVXPyramidModuleObj *obj);
 
-        status = app_modules_scaler_test(argc, argv);
-    }
 #endif
-
-#if (APP_MODULES_TEST_COLOR_CONVERT)
-    if(status==0)
-    {
-        printf("Running color convert module test\n");
-        int app_modules_color_convert_test(int argc, char* argv[]);
-
-        status = app_modules_color_convert_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_IMG_MOSAIC)
-    if(status==0)
-    {
-        printf("Running image mosaic module test\n");
-        int app_modules_img_mosaic_test(int argc, char* argv[]);
-
-        status = app_modules_img_mosaic_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_PRE_PROC)
-    if(status==0)
-    {
-        printf("Running DL pre-proc module test\n");
-        int app_modules_dl_pre_proc_test(int argc, char* argv[]);
-
-        status = app_modules_dl_pre_proc_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_COLOR_BLEND)
-    if(status==0)
-    {
-        printf("Running DL color-blend module test\n");
-        int app_modules_dl_color_blend_test(int argc, char* argv[]);
-
-        status = app_modules_dl_color_blend_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_LDC)
-    if(status==0)
-    {
-        printf("Running LDC module test\n");
-        int app_modules_ldc_test(int argc, char* argv[]);
-
-        status = app_modules_ldc_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_VISS)
-    if(status==0)
-    {
-        printf("Running VISS module test\n");
-        int app_modules_viss_test(int argc, char* argv[]);
-
-        status = app_modules_viss_test(argc, argv);
-    }
-#endif
-
-#if (APP_MODULES_TEST_PYRAMID)
-    if(status==0)
-    {
-        printf("Running PYRAMID module test\n");
-        int app_modules_pyramid_test(int argc, char* argv[]);
-
-        status = app_modules_pyramid_test(argc, argv);
-    }
-#endif
-
-    printf("All tests complete!\n");
-
-    appDeInit();
-
-    return status;
-}

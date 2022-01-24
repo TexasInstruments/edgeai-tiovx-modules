@@ -140,4 +140,19 @@ typedef struct {
 
 } TensorObj;
 
+typedef struct {
+    vx_object_array arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
+    vx_pyramid pyramid_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
+
+    vx_int32 width;
+    vx_int32 height;
+    vx_int32 color_format;
+    vx_int32 levels;
+    vx_float32 scale;
+
+    vx_int32 graph_parameter_index;
+    vx_int32 bufq_depth;
+
+} PyramidObj;
+
 #endif //_TIOVX_MODULES_COMMON

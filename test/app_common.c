@@ -588,6 +588,7 @@ vx_status delete_image_buffers(ImgObj *imgObj, void *virtAddr[][TIOVX_MODULES_MA
 
     APP_PRINTF("Deleting Buffers \n");
 
+
     for(bufq = 0; bufq < imgObj->bufq_depth; bufq++)
     {
         vx_int32 l;
@@ -1945,6 +1946,347 @@ vx_status release_user_data_buffers(vx_object_array obj_arr[], void *virtAddr[],
         }
 
         vxReleaseUserDataObject(&user_data);
+    }
+
+    return status;
+}
+
+vx_status allocate_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES])
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_size num_ch;
+    vx_int32 bufq, ch, ctr;
+    vx_uint32 num_planes;
+
+    APP_PRINTF("Allocating Buffers \n");
+
+    for(bufq = 0; bufq < pyramidObj->bufq_depth; bufq++)
+    {
+        vxQueryObjectArray(pyramidObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            vx_int32   l;
+
+            ctr = 0;
+            for(ch = 0; ch < num_ch; ch++)
+            {
+                vx_pyramid pyramid = (vx_pyramid)vxGetObjectArrayItem(pyramidObj->arr[bufq], ch);
+
+                status = allocate_single_pyramid_buffer
+                        (
+                            pyramid,
+                            &virtAddr[bufq][ctr],
+                            &sizes[bufq][ctr],
+                            &num_planes
+                        );
+
+                for(l = 0; l < num_planes; l++)
+                {
+                    APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[bufq][ctr + l], sizes[bufq][ctr + l]);
+                }
+
+                ctr += num_planes;
+                vxReleasePyramid(&pyramid);
+
+                if((vx_status)VX_SUCCESS != status)
+                {
+                    APP_PRINTF("Unable to allocate single pyramid buffer!\n");
+                    break;
+                }
+            }
+        }
+    }
+
+    return status;
+}
+
+vx_status allocate_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes)
+{
+    vx_status status = VX_SUCCESS;
+
+    void      *plane_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    vx_uint32  plane_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
+
+    vx_size   num_levels;
+    vx_size   pyramid_size;
+    vx_image  image;
+    vx_size   img_size;
+
+    status = vxQueryPyramid(pyramid, VX_PYRAMID_LEVELS, &num_levels, sizeof(num_levels));
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        vx_int32 l;
+        pyramid_size = 0;
+        for(l = 0; l < num_levels; l++)
+        {
+            image = vxGetPyramidLevel(pyramid, l);
+            status = vxQueryImage(image, VX_IMAGE_SIZE, &img_size, sizeof(img_size));
+            pyramid_size += img_size;
+            vxReleaseImage(&image);
+        }
+        void *pBase = tivxMemAlloc(pyramid_size, TIVX_MEM_EXTERNAL);
+
+        /* Export handles to get valid size information. */
+        status = tivxReferenceExportHandle((vx_reference)pyramid,
+                                            plane_addr,
+                                            plane_sizes,
+                                            TIOVX_MODULES_MAX_REF_HANDLES,
+                                            num_planes);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            vx_int32 p;
+            vx_int32 prev_size = 0;
+            for(p = 0; p < *num_planes; p++)
+            {
+                virtAddr[p] = (void *)((vx_uint8 *)pBase + prev_size);
+                sizes[p] = plane_sizes[p];
+                prev_size += plane_sizes[p];
+            }
+        }
+    }
+
+    return status;
+}
+
+vx_status assign_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch, ctr, l;
+    vx_size num_ch;
+
+    vxQueryObjectArray(pyramidObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Assigning Buffers \n");
+
+    ctr = 0;
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        vx_uint32 num_planes;
+
+        vx_pyramid pyramid = (vx_pyramid)vxGetObjectArrayItem(pyramidObj->arr[bufq], ch);
+
+        status = assign_single_pyramid_buffer
+                (
+                    pyramid,
+                    &virtAddr[ctr],
+                    &sizes[ctr],
+                    &num_planes
+                );
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to assign single pyramid buffer!\n");
+            break;
+        }
+
+        for(l = 0; l < num_planes; l++)
+        {
+            APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[ctr + l], sizes[ctr + l]);
+        }
+
+        ctr += num_planes;
+        vxReleasePyramid(&pyramid);
+    }
+
+    return status;
+}
+
+vx_status assign_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes)
+{
+    vx_status status = VX_SUCCESS;
+    void      *plane_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+    vx_uint32  plane_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        /* Export handles to get valid size information. */
+        status = tivxReferenceExportHandle((vx_reference)pyramid,
+                                            plane_addr,
+                                            plane_sizes,
+                                            TIOVX_MODULES_MAX_REF_HANDLES,
+                                            num_planes);
+
+        status = tivxReferenceImportHandle((vx_reference)pyramid,
+                                        (const void **)virtAddr,
+                                        (const uint32_t *)sizes,
+                                        *num_planes);
+    }
+
+    return status;
+}
+
+vx_status release_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq)
+{
+    vx_status status = VX_SUCCESS;
+
+    vx_int32 ch, ctr, l;
+    vx_size num_ch;
+    vx_uint32 num_planes;
+
+    vxQueryObjectArray(pyramidObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+    APP_PRINTF("Releasing Buffers \n");
+
+    ctr = 0;
+    for(ch = 0; ch < num_ch; ch++)
+    {
+        vx_pyramid pyramid = (vx_pyramid)vxGetObjectArrayItem(pyramidObj->arr[bufq], ch);
+
+        status = release_single_pyramid_buffer
+                (
+                    pyramid,
+                    &virtAddr[ctr],
+                    &sizes[ctr],
+                    &num_planes
+                );
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            APP_PRINTF("Unable to release single pyramid buffer!\n");
+            break;
+        }
+
+        for(l = 0; l < num_planes; l++)
+        {
+            APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[ctr + l], sizes[ctr + l]);
+        }
+
+        ctr += num_planes;
+        vxReleasePyramid(&pyramid);
+    }
+
+    return status;
+}
+
+vx_status release_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        vx_int32 p;
+        void      *plane_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+        vx_uint32  plane_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
+
+        /* Export handles to get valid size information. */
+        status = tivxReferenceExportHandle((vx_reference)pyramid,
+                                            plane_addr,
+                                            plane_sizes,
+                                            TIOVX_MODULES_MAX_REF_HANDLES,
+                                            num_planes);
+        for(p = 0; p < *num_planes; p++)
+        {
+            plane_addr[p] = NULL;
+            plane_sizes[p] = sizes[p];
+        }
+
+        /* Assign NULL handles to the OpenVx objects as it will avoid
+            doing a tivxMemFree twice, once now and once during release */
+        status = tivxReferenceImportHandle((vx_reference)pyramid,
+                                            (const void **)plane_addr,
+                                            (const uint32_t *)plane_sizes,
+                                            *num_planes);
+    }
+
+    return status;
+}
+
+vx_status delete_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES])
+{
+    vx_status status = VX_SUCCESS;
+    vx_int32 bufq, ch, ctr;
+    vx_size num_ch;
+    vx_uint32 num_planes;
+
+    APP_PRINTF("Deleting Buffers \n");
+
+    for(bufq = 0; bufq < pyramidObj->bufq_depth; bufq++)
+    {
+        vx_int32 l;
+        vxQueryObjectArray(pyramidObj->arr[bufq], VX_OBJECT_ARRAY_NUMITEMS, &num_ch, sizeof(vx_size));
+
+        ctr = 0;
+        for(ch = 0; ch < num_ch; ch++)
+        {
+            vx_pyramid pyramid = (vx_pyramid)vxGetObjectArrayItem(pyramidObj->arr[bufq], ch);
+
+            status = delete_single_pyramid_buffer
+                    (
+                        pyramid,
+                        &virtAddr[bufq][ctr],
+                        &sizes[bufq][ctr],
+                        &num_planes
+                    );
+
+            if((vx_status)VX_SUCCESS != status)
+            {
+                APP_PRINTF("Unable to delete single pyramid buffer!\n");
+                break;
+            }
+
+            for(l = 0; l < num_planes; l++)
+            {
+                APP_PRINTF("virtAddr[%d][%d] = 0x%016lx, size = %d\n", bufq, l, (unsigned long int)virtAddr[ctr + l], sizes[ctr + l]);
+            }
+
+            ctr += num_planes;
+            vxReleasePyramid(&pyramid);
+        }
+    }
+
+    return status;
+}
+
+vx_status delete_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes)
+{
+    vx_status status = VX_SUCCESS;
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        vx_int32 p, l;
+        void      *plane_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+        vx_uint32  plane_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
+        vx_size   num_levels;
+        vx_size   pyramid_size;
+        vx_image  image;
+        vx_size   img_size;
+
+        status = vxQueryPyramid(pyramid, VX_PYRAMID_LEVELS, &num_levels, sizeof(num_levels));
+
+        /* Export handles to get valid size information. */
+        status = tivxReferenceExportHandle((vx_reference)pyramid,
+                                            plane_addr,
+                                            plane_sizes,
+                                            TIOVX_MODULES_MAX_REF_HANDLES,
+                                            num_planes);
+        pyramid_size = 0;
+        for(l = 0; l < num_levels; l++)
+        {
+            image = vxGetPyramidLevel(pyramid, l);
+            status = vxQueryImage(image, VX_IMAGE_SIZE, &img_size, sizeof(img_size));
+            pyramid_size += img_size;
+            vxReleaseImage(&image);
+        }
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            /* Free only the first plane_addr as the remaining ones were
+                derrived in allocate_single_pyramid_buffer */
+            tivxMemFree(virtAddr[0], pyramid_size, TIVX_MEM_EXTERNAL);
+
+            /* Mark the handle and sizes as NULL and zero respectively */
+            vx_int32 p;
+            for(p = 0; p < *num_planes; p++)
+            {
+                virtAddr[p] = NULL;
+                sizes[p] = 0;
+            }
+        }
     }
 
     return status;
