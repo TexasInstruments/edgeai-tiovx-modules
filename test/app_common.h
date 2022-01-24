@@ -161,6 +161,16 @@ vx_status delete_raw_image_buffers(RawImgObj *imgObj, void *virtAddr[][TIOVX_MOD
 vx_status assign_raw_image_buffers(RawImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 vx_status release_raw_image_buffers(RawImgObj *imgObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
 
+vx_status allocate_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes);
+vx_status delete_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes);
+vx_status assign_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes);
+vx_status release_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_uint32 sizes[], vx_uint32 *num_planes);
+
+vx_status allocate_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
+vx_status delete_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[][TIOVX_MODULES_MAX_REF_HANDLES], vx_uint32 sizes[][TIOVX_MODULES_MAX_REF_HANDLES]);
+vx_status assign_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
+vx_status release_pyramid_buffers(PyramidObj *pyramidObj, void *virtAddr[], vx_uint32 sizes[], vx_int32 bufq);
+
 vx_status readTensor(char* file_name, vx_tensor tensor_o);
 vx_status writeTensor(char* file_name, vx_tensor tensor_o);
 vx_status create_tensor_mask(vx_tensor tensor_o, vx_int32 num_classes);
