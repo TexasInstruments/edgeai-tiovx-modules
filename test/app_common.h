@@ -110,12 +110,12 @@
 #define APP_MAX_BUFQ_DEPTH (8)
 
 #ifdef APP_DEBUG
-#define APP_PRINTF(f_, ...) printf((f_), ##__VA_ARGS__)
+#define APP_PRINTF(f_, ...) printf("[DEBUG] %d: %s: "f_, __LINE__, __func__, ##__VA_ARGS__)
 #else
 #define APP_PRINTF(f_, ...)
 #endif
 
-#define APP_ERROR(f_, ...) printf((f_), ##__VA_ARGS__)
+#define APP_ERROR(f_, ...) printf("[ERROR] %d: %s: "f_, __LINE__, __func__, ##__VA_ARGS__)
 
 #define ALIGN_STRIDE64(width) ((((width) + 32)/64)*64)
 
