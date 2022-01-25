@@ -96,12 +96,12 @@
 #define TIOVX_MODULES_MAX_REF_HANDLES     (8u)
 
 #ifdef TIOVX_MODULE_DEBUG
-#define TIOVX_MODULE_PRINTF(f_, ...) printf((f_), ##__VA_ARGS__)
+#define TIOVX_MODULE_PRINTF(f_, ...) printf("[DEBUG] %d: %s: "f_, __LINE__, __func__, ##__VA_ARGS__)
 #else
 #define TIOVX_MODULE_PRINTF(f_, ...)
 #endif
 
-#define TIOVX_MODULE_ERROR(f_, ...) printf((f_), ##__VA_ARGS__)
+#define TIOVX_MODULE_ERROR(f_, ...) printf("[ERROR] %d: %s: "f_, __LINE__, __func__, ##__VA_ARGS__)
 
 typedef struct {
     vx_object_array arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
