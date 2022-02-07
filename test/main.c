@@ -75,6 +75,7 @@
 #define APP_MODULES_TEST_LDC (1)
 #define APP_MODULES_TEST_VISS (1)
 #define APP_MODULES_TEST_PYRAMID (1)
+#define APP_MODULES_TEST_DOF (1)
 
 int32_t appInit()
 {
@@ -184,6 +185,16 @@ int main(int argc, char *argv[])
         int app_modules_pyramid_test(int argc, char* argv[]);
 
         status = app_modules_pyramid_test(argc, argv);
+    }
+#endif
+
+#if (APP_MODULES_TEST_DOF)
+    if(status==0)
+    {
+        printf("Running DOF module test\n");
+        int app_modules_dof_test(int argc, char* argv[]);
+
+        status = app_modules_dof_test(argc, argv);
     }
 #endif
 

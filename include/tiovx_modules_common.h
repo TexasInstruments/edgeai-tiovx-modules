@@ -155,4 +155,17 @@ typedef struct {
 
 } PyramidObj;
 
+typedef struct {
+    vx_object_array arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
+    vx_distribution dst_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
+
+	vx_size 	num_bins;
+    vx_int32 	offset;
+    vx_uint32 	range;
+
+    vx_int32 graph_parameter_index;
+    vx_int32 bufq_depth;
+
+} DstObj;
+
 #endif //_TIOVX_MODULES_COMMON
