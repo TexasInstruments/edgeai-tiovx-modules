@@ -59,8 +59,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
- #ifndef _TIOVX_COLOR_CONVERT_MODULE
- #define _TIOVX_COLOR_CONVERT_MODULE
+ #ifndef _TIOVX_PYRAMID_MODULE
+ #define _TIOVX_PYRAMID_MODULE
 
 /**
  * \defgroup group_modules_pyramid Pyramid Node Module
