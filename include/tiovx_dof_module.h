@@ -59,8 +59,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
- #ifndef _TIOVX_COLOR_CONVERT_MODULE
- #define _TIOVX_COLOR_CONVERT_MODULE
+ #ifndef _TIOVX_DOF_MODULE
+ #define _TIOVX_DOF_MODULE
 
 #include "tiovx_modules_common.h"
 
