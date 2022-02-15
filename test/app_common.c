@@ -1472,35 +1472,17 @@ vx_status readImage(char* file_name, vx_image img)
                 APP_PRINTF("image_addr.stride_x = %d\n ", image_addr.stride_x);
                 APP_PRINTF("\n");
 
-                if((img_format == VX_DF_IMAGE_RGB) || (img_format == VX_DF_IMAGE_RGBX)
-                   || (img_format == VX_DF_IMAGE_NV12) || (img_format == VX_DF_IMAGE_NV21))
+                num_bytes = 0;
+                for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
                 {
-                    num_bytes = 0;
-                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
-                    {
-                        num_bytes += fread(data_ptr, 1, ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x), fp);
-                        data_ptr += image_addr.stride_y;
-                    }
-
-                    plane_size = (image_addr.dim_y/image_addr.step_y) * ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x);
-
-                    if(num_bytes != plane_size)
-                        APP_ERROR("Plane [%d] bytes read = %d, expected = %d\n", plane, num_bytes, plane_size);
+                    num_bytes += image_addr.stride_x * fread(data_ptr, image_addr.stride_x, (image_addr.dim_x/image_addr.step_x), fp);
+                    data_ptr += image_addr.stride_y;
                 }
-                else
-                {
-                    num_bytes = 0;
-                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
-                    {
-                        num_bytes += fread(data_ptr, 1, (image_addr.dim_x/image_addr.step_x), fp);
-                        data_ptr += image_addr.stride_y;
-                    }
 
-                    plane_size = (image_addr.dim_y/image_addr.step_y) * (image_addr.dim_x/image_addr.step_x);
+                plane_size = (image_addr.dim_y/image_addr.step_y) * ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x);
 
-                    if(num_bytes != plane_size)
-                        APP_ERROR("Plane [%d] bytes read = %d, expected = %d\n", plane, num_bytes, plane_size);
-                }
+                if(num_bytes != plane_size)
+                    APP_ERROR("Plane [%d] bytes read = %d, expected = %d\n", plane, num_bytes, plane_size);
 
                 vxUnmapImagePatch(img, map_id);
             }
@@ -1572,35 +1554,17 @@ vx_status writeImage(char* file_name, vx_image img)
                 APP_PRINTF("image_addr.stride_x = %d\n ", image_addr.stride_x);
                 APP_PRINTF("\n");
 
-                if((img_format == VX_DF_IMAGE_RGB) || (img_format == VX_DF_IMAGE_RGBX)
-                   || (img_format == VX_DF_IMAGE_NV12) || (img_format == VX_DF_IMAGE_NV21))
+                num_bytes = 0;
+                for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
                 {
-                    num_bytes = 0;
-                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
-                    {
-                        num_bytes += fwrite(data_ptr, 1, ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x), fp);
-                        data_ptr += image_addr.stride_y;
-                    }
-
-                    plane_size = (image_addr.dim_y/image_addr.step_y) * ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x);
-
-                    if(num_bytes != plane_size)
-                        APP_ERROR("Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
+                    num_bytes += image_addr.stride_x * fwrite(data_ptr, image_addr.stride_x, (image_addr.dim_x/image_addr.step_x), fp);
+                    data_ptr += image_addr.stride_y;
                 }
-                else
-                {
-                    num_bytes = 0;
-                    for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
-                    {
-                        num_bytes += fwrite(data_ptr, 1, (image_addr.dim_x/image_addr.step_x), fp);
-                        data_ptr += image_addr.stride_y;
-                    }
 
-                    plane_size = (image_addr.dim_y/image_addr.step_y) * (image_addr.dim_x/image_addr.step_x);
+                plane_size = (image_addr.dim_y/image_addr.step_y) * ((image_addr.dim_x * image_addr.stride_x)/image_addr.step_x);
 
-                    if(num_bytes != plane_size)
-                        APP_ERROR("Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
-                }
+                if(num_bytes != plane_size)
+                    APP_ERROR("Plane [%d] bytes written = %d, expected = %d\n", plane, num_bytes, plane_size);
 
                 vxUnmapImagePatch(img, map_id);
             }
