@@ -66,8 +66,8 @@
 #define APP_BUFQ_DEPTH   (1)
 #define APP_NUM_CH       (1)
 
-#define IMAGE_WIDTH  (640)
-#define IMAGE_HEIGHT (480)
+#define IMAGE_WIDTH  (1280)
+#define IMAGE_HEIGHT (720)
 
 #define PYRAMID_LEVELS (3)
 
@@ -288,7 +288,8 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename_template = "/opt/edgeai-tiovx-modules/data/input/pyramid_640x480_level_%d_u8.yuv";
+    char * input_filename_template = "/opt/edgeai-tiovx-modules/data/input/avp3_1280x720_0_pyramid_level_%d_u8.gray";
+    char * input_ref_filename_template = "/opt/edgeai-tiovx-modules/data/input/avp3_1280x720_1_pyramid_level_%d_u8.gray";
     char * output_filename = "/opt/edgeai-tiovx-modules/data/output/output_dof_u32.raw";
 
     vx_pyramid  input_o, input_ref_o;
@@ -326,6 +327,8 @@ static vx_status app_run_graph(AppObj *obj)
         in_image = vxGetPyramidLevel(dofObj->input.pyramid_handle[0], i);
         readImage(input_filename, in_image);
         vxReleaseImage(&in_image);
+
+        sprintf(input_filename, input_ref_filename_template, i);
 
         in_image = vxGetPyramidLevel(dofObj->input_ref.pyramid_handle[0], i);
         readImage(input_filename, in_image);
