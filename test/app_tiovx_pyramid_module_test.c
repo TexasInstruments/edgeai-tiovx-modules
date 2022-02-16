@@ -66,8 +66,8 @@
 #define APP_BUFQ_DEPTH   (1)
 #define APP_NUM_CH       (1)
 
-#define IMAGE_WIDTH  (640)
-#define IMAGE_HEIGHT (480)
+#define IMAGE_WIDTH  (1280)
+#define IMAGE_HEIGHT (720)
 
 #define PYRAMID_LEVELS (3)
 
@@ -244,8 +244,8 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
-    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/baboon_640x480_nv12.yuv";
-    char * output_filename_template = "/opt/edgeai-tiovx-modules/data/output/output_pyramid_level_%d_u8.yuv";
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/avp3_1280x720_0_nv12.yuv";
+    char * output_filename_template = "/opt/edgeai-tiovx-modules/data/output/output_pyramid_level_%d_u8.gray";
 
     vx_image   input_o;
     vx_pyramid output_o;
