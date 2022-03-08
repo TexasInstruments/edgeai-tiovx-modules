@@ -76,7 +76,7 @@ static vx_status tiovx_dof_module_configure_params(vx_context context, TIOVXDofM
                     &obj->params, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
         if(status != VX_SUCCESS)
         {
-            TIOVX_MODULE_ERROR("[DOF-MODULE] Unable to copy mosaic params! \n");
+            TIOVX_MODULE_ERROR("[DOF-MODULE] Unable to copy dof params! \n");
         }
     }
     else
