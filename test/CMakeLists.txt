@@ -19,6 +19,7 @@ set(EDGEAI_TIOVX_MODULES_TEST
     app_tiovx_dof_module_test.c
     app_tiovx_dof_viz_module_test.c
     app_tiovx_sde_module_test.c
+    app_tiovx_sde_viz_module_test.c
     app_common.c
     main.c)
 
