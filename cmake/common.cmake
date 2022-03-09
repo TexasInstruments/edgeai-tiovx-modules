@@ -44,6 +44,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/linux
                     /usr/include/processor_sdk/ivision
                     /usr/include/processor_sdk/imaging
+                    /usr/include/processor_sdk/perception/include
                     /usr/include/processor_sdk/imaging/algos/ae/include
                     /usr/include/processor_sdk/imaging/algos/awb/include
                     /usr/include/processor_sdk/imaging/algos/dcc/include
@@ -58,6 +59,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     /usr/include/processor_sdk/vision_apps
                     /usr/include/processor_sdk/vision_apps/kernels/img_proc/include
                     /usr/include/processor_sdk/vision_apps/kernels/fileio/include
+                    /usr/include/processor_sdk/vision_apps/kernels/stereo/include
                     )
 
 set(SYSTEM_LINK_LIBS
