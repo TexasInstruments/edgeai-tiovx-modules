@@ -79,6 +79,7 @@
 #define APP_MODULES_TEST_DOF (1)
 #define APP_MODULES_TEST_DOF_VIZ (1)
 #define APP_MODULES_TEST_SDE (1)
+#define APP_MODULES_TEST_SDE_VIZ (1)
 
 int32_t appInit()
 {
@@ -228,6 +229,16 @@ int main(int argc, char *argv[])
         int app_modules_sde_test(int argc, char* argv[]);
 
         status = app_modules_sde_test(argc, argv);
+    }
+#endif
+
+#if (APP_MODULES_TEST_SDE_VIZ)
+    if(status==0)
+    {
+        printf("Running SDE Viz module test\n");
+        int app_modules_sde_viz_test(int argc, char* argv[]);
+
+        status = app_modules_sde_viz_test(argc, argv);
     }
 #endif
 
