@@ -6,6 +6,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/common.cmake)
 
 add_library(${PROJECT_NAME} SHARED
             tiovx_color_convert_module.c
+            tiovx_dl_color_convert_module.c
             tiovx_multi_scaler_module.c
             tiovx_img_mosaic_module.c
             tiovx_dl_pre_proc_module.c

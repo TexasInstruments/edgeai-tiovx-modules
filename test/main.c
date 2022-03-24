@@ -70,8 +70,9 @@
 #define APP_MODULES_TEST_MULTI_SCALER (1)
 #define APP_MODULES_TEST_COLOR_CONVERT (1)
 #define APP_MODULES_TEST_IMG_MOSAIC (1)
-#define APP_MODULES_TEST_PRE_PROC (1)
-#define APP_MODULES_TEST_COLOR_BLEND (1)
+#define APP_MODULES_TEST_DL_PRE_PROC (1)
+#define APP_MODULES_TEST_DL_COLOR_BLEND (1)
+#define APP_MODULES_TEST_DL_COLOR_CONVERT (1)
 #define APP_MODULES_TEST_LDC (1)
 #define APP_MODULES_TEST_VISS (1)
 #define APP_MODULES_TEST_PYRAMID (1)
@@ -129,6 +130,16 @@ int main(int argc, char *argv[])
     }
 #endif
 
+#if (APP_MODULES_TEST_DL_COLOR_CONVERT)
+    if(status==0)
+    {
+        printf("Running DL color convert module test\n");
+        int app_modules_dl_color_convert_test(int argc, char* argv[]);
+
+        status = app_modules_dl_color_convert_test(argc, argv);
+    }
+#endif
+
 #if (APP_MODULES_TEST_IMG_MOSAIC)
     if(status==0)
     {
@@ -139,7 +150,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-#if (APP_MODULES_TEST_PRE_PROC)
+#if (APP_MODULES_TEST_DL_PRE_PROC)
     if(status==0)
     {
         printf("Running DL pre-proc module test\n");
@@ -149,7 +160,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-#if (APP_MODULES_TEST_COLOR_BLEND)
+#if (APP_MODULES_TEST_DL_COLOR_BLEND)
     if(status==0)
     {
         printf("Running DL color-blend module test\n");
