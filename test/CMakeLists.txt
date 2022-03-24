@@ -8,6 +8,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/common.cmake)
 
 set(EDGEAI_TIOVX_MODULES_TEST
     app_tiovx_color_convert_module_test.c
+    app_tiovx_dl_color_convert_module_test.c
     app_tiovx_multi_scaler_module_test.c
     app_tiovx_img_mosaic_module_test.c
     app_tiovx_dl_pre_proc_module_test.c
