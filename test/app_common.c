@@ -1620,7 +1620,6 @@ vx_status create_tensor_mask(vx_tensor tensor_o, vx_int32 num_classes)
     vx_size start[APP_MAX_TENSOR_DIMS];
     vx_size tensor_strides[APP_MAX_TENSOR_DIMS];
     vx_size tensor_sizes[APP_MAX_TENSOR_DIMS];
-    vx_char new_name[APP_MAX_FILE_PATH];
     vx_enum data_type;
 
     vxQueryTensor(tensor_o, VX_TENSOR_NUMBER_OF_DIMS, &num_dims, sizeof(vx_size));
@@ -1671,8 +1670,6 @@ vx_status create_tensor_mask(vx_tensor tensor_o, vx_int32 num_classes)
 vx_status allocate_single_user_data_buffer(vx_user_data_object user_data, void *virtAddr[], vx_uint32 sizes[])
 {
     vx_status status = VX_SUCCESS;
-
-    void      *buf_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
 
     vx_size data_size;
 
@@ -2212,7 +2209,7 @@ vx_status delete_single_pyramid_buffer(vx_pyramid pyramid, void *virtAddr[], vx_
 
     if((vx_status)VX_SUCCESS == status)
     {
-        vx_int32 p, l;
+        vx_int32 l;
         void      *plane_addr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
         vx_uint32  plane_sizes[TIOVX_MODULES_MAX_REF_HANDLES];
         vx_size   num_levels;
