@@ -1,5 +1,7 @@
 include(GNUInstallDirs)
 
+add_compile_options(-Wall)
+
 # Specific compile optios across all targets
 #add_compile_definitions(MINIMAL_LOGGING)
 

@@ -85,7 +85,7 @@ typedef struct {
 
 } AppObj;
 
-AppObj gAppObj;
+static AppObj gAppObj;
 
 static vx_status app_init(AppObj *obj);
 static void app_deinit(AppObj *obj);

@@ -80,7 +80,7 @@ typedef struct {
 
 } AppObj;
 
-AppObj gAppObj;
+static AppObj gAppObj;
 
 static vx_status app_init(AppObj *obj);
 static void app_deinit(AppObj *obj);
@@ -229,8 +229,6 @@ static vx_status app_verify_graph(AppObj *obj)
 
     return status;
 }
-
-static vx_status writeOutput(char* file_name, vx_image out_img);
 
 static vx_status app_run_graph(AppObj *obj)
 {

@@ -191,7 +191,6 @@ static vx_status tiovx_viss_module_configure_dcc_params(vx_context context, TIOV
 static vx_status tiovx_viss_module_create_inputs(vx_context context, TIOVXVISSModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
-    vx_uint32 img_height, img_width;
     vx_int32 buf;
 
     SensorObj *sensorObj = obj->sensorObj;
@@ -277,7 +276,6 @@ static vx_status tiovx_viss_module_create_inputs(vx_context context, TIOVXVISSMo
 static vx_status tiovx_viss_module_create_outputs(vx_context context, TIOVXVISSModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
-    vx_uint32 img_height, img_width;
     vx_int32 buf;
 
     SensorObj *sensorObj = obj->sensorObj;
