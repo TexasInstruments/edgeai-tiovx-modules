@@ -128,8 +128,6 @@ static vx_status tiovx_ldc_module_configure_mesh_params(vx_context context, TIOV
 {
     vx_status status = VX_SUCCESS;
 
-    SensorObj *sensorObj = obj->sensorObj;
-
     vx_uint32 table_width_ds, table_height_ds;
     vx_imagepatch_addressing_t image_addr;
     vx_rectangle_t rect;
@@ -207,8 +205,6 @@ static vx_status tiovx_ldc_module_configure_mesh_params(vx_context context, TIOV
 static vx_status tiovx_ldc_module_configure_region_params(vx_context context, TIOVXLDCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
-
-    SensorObj *sensorObj = obj->sensorObj;
 
     /* Block Size parameters */
     obj->region_params.out_block_width  = LDC_BLOCK_WIDTH;

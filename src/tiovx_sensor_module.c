@@ -62,8 +62,6 @@
 
 #include "tiovx_sensor_module.h"
 
-static char availableSensorNames[ISS_SENSORS_MAX_SUPPORTED_SENSOR][ISS_SENSORS_MAX_NAME];
-
 vx_status tiovx_querry_sensor(SensorObj *sensorObj)
 {
     vx_status status = VX_SUCCESS;
