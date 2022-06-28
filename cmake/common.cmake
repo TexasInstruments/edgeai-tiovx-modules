@@ -15,8 +15,10 @@ SET(CMAKE_FIND_LIBRARY_PREFIXES "" "lib")
 SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".lib" ".so")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
+set(CMAKE_INSTALL_PREFIX           /usr)
+set(CMAKE_INSTALL_LIBDIR           lib)
 
 set(TARGET_PLATFORM     J7)
 set(TARGET_CPU          A72)
@@ -34,35 +36,35 @@ link_directories(/usr/lib/aarch64-linux-gnu
                  /usr/lib/
                  )
 
-#message("PROJECT_SOURCE_DIR =" ${PROJECT_SOURCE_DIR})
-#message("CMAKE_SOURCE_DIR =" ${CMAKE_SOURCE_DIR})
+#message("PROJECT_SOURCE_DIR = ${PROJECT_SOURCE_DIR}")
+#message("CMAKE_SOURCE_DIR   = ${CMAKE_SOURCE_DIR}")
 
 include_directories(${PROJECT_SOURCE_DIR}
-                    ${PROJECT_SOURCE_DIR}/..
-                    ${PROJECT_SOURCE_DIR}/../include
-                    /usr/local/include
-                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common
-                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common_linux
-                    /usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/linux
-                    /usr/include/processor_sdk/ivision
-                    /usr/include/processor_sdk/imaging
-                    /usr/include/processor_sdk/perception/include
-                    /usr/include/processor_sdk/imaging/algos/ae/include
-                    /usr/include/processor_sdk/imaging/algos/awb/include
-                    /usr/include/processor_sdk/imaging/algos/dcc/include
-                    /usr/include/processor_sdk/imaging/sensor_drv/include
-                    /usr/include/processor_sdk/imaging/ti_2a_wrapper/include
-                    /usr/include/processor_sdk/imaging/kernels/include
-                    /usr/include/processor_sdk/tidl_j7/ti_dl/inc
-                    /usr/include/processor_sdk/tiovx/include
-                    /usr/include/processor_sdk/tiovx/kernels/include
-                    /usr/include/processor_sdk/tiovx/kernels_j7/include
-                    /usr/include/processor_sdk/tiovx/utils/include
-                    /usr/include/processor_sdk/vision_apps
-                    /usr/include/processor_sdk/vision_apps/kernels/img_proc/include
-                    /usr/include/processor_sdk/vision_apps/kernels/fileio/include
-                    /usr/include/processor_sdk/vision_apps/kernels/stereo/include
-                    )
+                    ${PROJECT_SOURCE_DIR}/include
+                    ${TARGET_FS}/usr/local/include
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/rtos/common_linux
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/linux
+                    ${TARGET_FS}/usr/include/processor_sdk/ivision
+                    ${TARGET_FS}/usr/include/processor_sdk/imaging
+                    ${TARGET_FS}/usr/include/processor_sdk/perception/include
+                    ${TARGET_FS}/usr/include/processor_sdk/imaging/algos/ae/include
+                    ${TARGET_FS}/usr/include/processor_sdk/imaging/algos/awb/include
+                    ${TARGET_FS}/usr/include/processor_sdk/imaging/algos/dcc/include
+                    ${TARGET_FS}/usr/include/processor_sdk/imaging/sensor_drv/include
+                    ${TARGET_FS}/usr/include/processor_sdk/imaging/ti_2a_wrapper/include
+                    ${TARGET_FS}/usr/include/processor_sdk/imaging/kernels/include
+                    ${TARGET_FS}/usr/include/processor_sdk/tidl_j7/ti_dl/inc
+                    ${TARGET_FS}/usr/include/processor_sdk/tiovx/include
+                    ${TARGET_FS}/usr/include/processor_sdk/tiovx/kernels/include
+                    ${TARGET_FS}/usr/include/processor_sdk/tiovx/kernels_j7/include
+                    ${TARGET_FS}/usr/include/processor_sdk/tiovx/utils/include
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps/utils/app_init/include
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps/kernels/img_proc/include
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps/kernels/fileio/include
+                    ${TARGET_FS}/usr/include/processor_sdk/vision_apps/kernels/stereo/include
+                   )
 
 set(SYSTEM_LINK_LIBS
     tivision_apps
@@ -73,16 +75,45 @@ set(COMMON_LINK_LIBS
     )
 
 # Function for building a node:
-# ARG0: app name
-# ARG1: source list
-function(build_app)
-    set(app ${ARGV0})
-    set(src ${ARGV1})
-    add_executable(${app} ${${src}})
-    target_link_libraries(${app}
+# app_name: app name
+# ${ARGN} expands everything after the last named argument to the end
+# usage: build_app(app_name a.c b.c....)
+function(build_app app_name)
+    add_executable(${app_name} ${ARGN})
+    target_link_libraries(${app_name}
                           ${COMMON_LINK_LIBS}
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}
                          )
+endfunction()
+
+# Function for building a node:
+# lib_name: Name of the library
+# lib_type: (STATIC, SHARED)
+# lib_ver: Version string of the library
+# ${ARGN} expands everything after the last named argument to the end
+# usage: build_lib(lib_name lib_type lib_ver a.c b.c ....)
+function(build_lib lib_name lib_type lib_ver)
+    add_library(${lib_name} ${lib_type} ${ARGN})
+
+    SET_TARGET_PROPERTIES(${lib_name}
+                          PROPERTIES
+                          VERSION ${lib_ver}
+                         )
+
+    set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+
+    install(TARGETS ${lib_name}
+            EXPORT ${lib_name}Targets
+            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}  # Shared Libs
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}  # Static Libs
+            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}  # Executables, DLLs
+           )
+
+    FILE(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h)
+
+    # Specify the header files to install
+    install(FILES ${HDRS} DESTINATION ${INCLUDE_INSTALL_DIR})
+
 endfunction()
 
