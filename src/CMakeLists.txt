@@ -18,8 +18,8 @@ add_library(${PROJECT_NAME} SHARED
             tiovx_dof_module.c
             tiovx_dof_viz_module.c)
 
-install(TARGETS ${PROJECT_NAME} DESTINATION /usr/lib/${PROJECT_NAME})
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../include DESTINATION /usr/include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
+install(TARGETS ${PROJECT_NAME} DESTINATION ${TARGET_FS}/usr/lib/${PROJECT_NAME})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../include DESTINATION ${TARGET_FS}/usr/include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
 
 SET_TARGET_PROPERTIES(${PROJECT_NAME}
                         PROPERTIES
