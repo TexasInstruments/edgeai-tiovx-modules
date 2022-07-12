@@ -107,6 +107,7 @@ static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
 static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
+static int32_t OV2312_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
 
 vx_status app_modules_viss_test(vx_int32 argc, vx_char* argv[])
 {

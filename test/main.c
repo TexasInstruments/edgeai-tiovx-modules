@@ -76,8 +76,8 @@
 #define APP_MODULES_TEST_LDC (1)
 #define APP_MODULES_TEST_VISS (1)
 #define APP_MODULES_TEST_PYRAMID (1)
-#define APP_MODULES_TEST_DOF (1)
-#define APP_MODULES_TEST_DOF_VIZ (1)
+#define APP_MODULES_TEST_DOF (0)
+#define APP_MODULES_TEST_DOF_VIZ (0)
 
 int32_t appInit()
 {

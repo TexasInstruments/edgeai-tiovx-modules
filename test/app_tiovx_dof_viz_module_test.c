@@ -60,6 +60,8 @@
  *
  */
 
+#ifndef SOC_AM62A
+
 #include "app_common.h"
 #include "tiovx_dof_viz_module.h"
 
@@ -298,3 +300,4 @@ static vx_status app_run_graph(AppObj *obj)
     return status;
 }
 
+#endif // SOC_AM62A

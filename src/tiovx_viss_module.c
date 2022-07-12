@@ -78,7 +78,7 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
     if(obj->output_select[0] == TIOVX_VISS_MODULE_OUTPUT_EN)
     {
 #if defined(SOC_AM62A)
-        if(obj->params.enable_ir_output)
+        if(obj->params.enable_ir_op)
         {
             if(obj->output2.color_format == VX_DF_IMAGE_U8)
             {
@@ -114,7 +114,7 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
         }
 #if defined(SOC_AM62A)
         else if((obj->output2.color_format == VX_DF_IMAGE_U16) &&
-                (obj->params.enable_ir_output))
+                (obj->params.enable_ir_op))
         {
             obj->params.fcp[0].mux_output2 = TIVX_VPAC_VISS_MUX2_IR12_U16;
         }
