@@ -23,11 +23,11 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX /usr CACHE PATH "Installation Prefix" FORCE)
 endif()
 
-set(TARGET_PLATFORM     J7)
-set(TARGET_CPU          A72)
+set(TARGET_PLATFORM     AM62)
+set(TARGET_CPU          A53)
 set(TARGET_OS           LINUX)
-set(TARGET_SOC          J721E)
-set(TARGET_SOC_LOWER    j721e)
+set(TARGET_SOC          AM62A)
+set(TARGET_SOC_LOWER    am62a)
 
 add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
