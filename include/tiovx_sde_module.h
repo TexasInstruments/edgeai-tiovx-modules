@@ -62,6 +62,8 @@
  #ifndef _TIOVX_SDE_MODULE
  #define _TIOVX_SDE_MODULE
 
+ #ifndef SOC_AM62A
+
 #include "tiovx_modules_common.h"
 
 typedef struct {
@@ -146,5 +148,7 @@ vx_status tiovx_sde_module_create(vx_graph graph, TIOVXSdeModuleObj *obj, vx_obj
  *
  */
 vx_status tiovx_sde_module_release_buffers(TIOVXSdeModuleObj *obj);
+
+#endif // SOC_AM62A
 
 #endif

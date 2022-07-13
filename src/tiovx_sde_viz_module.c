@@ -59,6 +59,9 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#ifndef SOC_AM62A
+
 #include "tiovx_sde_viz_module.h"
 
 static vx_status tiovx_sde_viz_module_configure_params(vx_context context, TIOVXSdeVizModuleObj *obj)
@@ -423,3 +426,5 @@ vx_status tiovx_sde_viz_module_release_buffers(TIOVXSdeVizModuleObj *obj)
 
     return status;
 }
+
+#endif // SOC_AM62A

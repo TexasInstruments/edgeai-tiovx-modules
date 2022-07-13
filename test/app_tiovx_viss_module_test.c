@@ -107,6 +107,7 @@ static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
 static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
+static int32_t OV2312_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
 
 vx_status app_modules_viss_test(vx_int32 argc, vx_char* argv[])
 {
@@ -166,6 +167,8 @@ static vx_status app_init(AppObj *obj)
         tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX219_RPI");
 #endif    
 
+        tivx_vpac_viss_params_init(&vissObj->params);
+
 #if defined (SOC_AM62A)        
         snprintf(vissObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/ov2312/dcc_viss.bin");
 #else
@@ -202,8 +205,8 @@ static vx_status app_init(AppObj *obj)
 
 #if defined(SOC_AM62A)
 
-        /* Ideally below initialization of enable_ir_op and enable_bayer_op should be 
-        inside function "tiovx_viss_module_configure_params" in tiovx_viss_module.c */
+        vissObj->params.bypass_pcid = 0;
+
         vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_DISABLE;
         vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_ENABLE;
 
@@ -562,7 +565,6 @@ static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms)
 
 #if defined (SOC_AM62A)
 /* Typically this is obtained by querying the sensor */
-/* These values comes from Gang */
 static int32_t OV2312_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms)
 {
     int32_t  status = 0;
@@ -575,12 +577,12 @@ static int32_t OV2312_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms)
     p_ae_dynPrms->enableBlc = 1;
     p_ae_dynPrms->exposureTimeStepSize = 1;
 
-    p_ae_dynPrms->exposureTimeRange[count].min = 100;
-    p_ae_dynPrms->exposureTimeRange[count].max = 33333;
-    p_ae_dynPrms->analogGainRange[count].min = 1024;
-    p_ae_dynPrms->analogGainRange[count].max = 8192;
-    p_ae_dynPrms->digitalGainRange[count].min = 256;
-    p_ae_dynPrms->digitalGainRange[count].max = 256;
+    p_ae_dynPrms->exposureTimeRange[count].min = 1;
+    p_ae_dynPrms->exposureTimeRange[count].max = 1404;
+    p_ae_dynPrms->analogGainRange[count].min = 1;
+    p_ae_dynPrms->analogGainRange[count].max = 511;
+    p_ae_dynPrms->digitalGainRange[count].min = 1;
+    p_ae_dynPrms->digitalGainRange[count].max = 4095;
     count++;
 
     p_ae_dynPrms->numAeDynParams = count;

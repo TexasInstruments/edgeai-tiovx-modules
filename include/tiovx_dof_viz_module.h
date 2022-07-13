@@ -62,6 +62,8 @@
  #ifndef _TIOVX_DOF_VIZ_MODULE
  #define _TIOVX_DOF_VIZ_MODULE
 
+ #ifndef SOC_AM62A
+
 #include "tiovx_modules_common.h"
 
 typedef struct {
@@ -138,4 +140,7 @@ vx_status tiovx_dof_viz_module_create(vx_graph graph, TIOVXDofVizModuleObj *obj,
  */
 vx_status tiovx_dof_viz_module_release_buffers(TIOVXDofVizModuleObj *obj);
 
+#endif // SOC_AM62A
+
 #endif
+

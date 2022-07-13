@@ -59,6 +59,9 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#ifndef SOC_AM62A
+
 #include "tiovx_dof_module.h"
 
 static vx_status tiovx_dof_module_configure_params(vx_context context, TIOVXDofModuleObj *obj)
@@ -854,3 +857,5 @@ vx_status tiovx_dof_module_release_buffers(TIOVXDofModuleObj *obj)
 
     return status;
 }
+
+#endif //SOC_AM62A

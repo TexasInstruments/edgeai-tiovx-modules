@@ -62,6 +62,8 @@
  #ifndef _TIOVX_SDE_VIZ_MODULE
  #define _TIOVX_SDE_VIZ_MODULE
 
+ #ifndef SOC_AM62A
+
 #include "tiovx_modules_common.h"
 #include <TI/tivx_stereo.h>
 
@@ -136,5 +138,7 @@ vx_status tiovx_sde_viz_module_create(vx_graph graph, TIOVXSdeVizModuleObj *obj,
  *
  */
 vx_status tiovx_sde_viz_module_release_buffers(TIOVXSdeVizModuleObj *obj);
+
+#endif // SOC_AM62A
 
 #endif
