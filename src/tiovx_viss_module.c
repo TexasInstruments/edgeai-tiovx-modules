@@ -68,8 +68,6 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
 
     SensorObj *sensorObj = obj->sensorObj;
 
-    tivx_vpac_viss_params_init(&obj->params);
-
     obj->params.sensor_dcc_id       = sensorObj->sensorParams.dccId;
     obj->params.use_case            = 0;
     obj->params.fcp[0].ee_mode      = TIVX_VPAC_VISS_EE_MODE_OFF;
@@ -78,7 +76,7 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
     if(obj->output_select[0] == TIOVX_VISS_MODULE_OUTPUT_EN)
     {
 #if defined(SOC_AM62A)
-        if(obj->params.enable_ir_output)
+        if(obj->params.enable_ir_op)
         {
             if(obj->output2.color_format == VX_DF_IMAGE_U8)
             {
@@ -114,7 +112,7 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
         }
 #if defined(SOC_AM62A)
         else if((obj->output2.color_format == VX_DF_IMAGE_U16) &&
-                (obj->params.enable_ir_output))
+                (obj->params.enable_ir_op))
         {
             obj->params.fcp[0].mux_output2 = TIVX_VPAC_VISS_MUX2_IR12_U16;
         }
@@ -133,10 +131,6 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
     obj->params.h3a_aewb_af_mode    = TIVX_VPAC_VISS_H3A_MODE_AEWB;
     obj->params.bypass_nsf4         = 0;
     obj->params.enable_ctx          = 1;
-
-#if defined(SOC_AM62A)
-    obj->params.bypass_pcid         = 0;
-#endif
 
     if(sensorObj->sensor_wdr_enabled == 1)
     {
