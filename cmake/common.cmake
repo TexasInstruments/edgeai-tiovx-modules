@@ -35,8 +35,8 @@ add_definitions(
     -DSOC_${TARGET_SOC}
 )
 
-link_directories(/usr/lib/aarch64-linux-gnu
-                 /usr/lib/
+link_directories(${TARGET_FS}/usr/lib/aarch64-linux
+                 ${TARGET_FS}/usr/lib
                  )
 
 #message("PROJECT_SOURCE_DIR = ${PROJECT_SOURCE_DIR}")

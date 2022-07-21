@@ -47,12 +47,4 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 # https://cmake.org/cmake/help/latest/variable/CMAKE_TRY_COMPILE_PLATFORM_VARIABLES.html
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES CROSS_COMPILER_PATH TARGET_FS TOOLCHAIN_PREFIX)
 
-link_directories(${TARGET_FS}/usr/lib/aarch64-linux
-                 ${TARGET_FS}/usr/lib/python3.8/site-packages/dlr
-                 ${TARGET_FS}/usr/lib
-                 ${TARGET_FS}/lib
-                 )
-
-set(TARGET_LINK_LIBS dlr)
-
 #message(STATUS "CMAKE_FIND_ROOT_PATH: ${CMAKE_FIND_ROOT_PATH}")
