@@ -67,11 +67,16 @@
 
 #define APP_BUFQ_DEPTH   (1)
 
-#define INPUT_WIDTH  (1920)
-#define INPUT_HEIGHT (1080)
-
 #define INPUT_WIDTH_OV2312  (1600)
 #define INPUT_HEIGHT_OV2312 (1300)
+
+#if defined (SOC_AM62A)
+    #define INPUT_WIDTH  INPUT_WIDTH_OV2312
+    #define INPUT_HEIGHT INPUT_WIDTH_OV2312
+#else
+    #define INPUT_WIDTH  (1920)
+    #define INPUT_HEIGHT (1080)
+#endif
 
 #define OUTPUT_WIDTH  (INPUT_WIDTH)
 #define OUTPUT_HEIGHT (INPUT_HEIGHT)
@@ -177,28 +182,22 @@ static vx_status app_init(AppObj *obj)
 
         vissObj->input.bufq_depth = APP_BUFQ_DEPTH;
 
-#if defined (SOC_AM62A)
-        /* information here is hardcoded for OV2312 sensor */
-        /* Typically this information should be obtained by querying the sensor */
-        vissObj->input.params.width  = INPUT_WIDTH_OV2312;
-        vissObj->input.params.height = INPUT_HEIGHT_OV2312;
-        vissObj->input.params.num_exposures = 1;
-        vissObj->input.params.line_interleaved = vx_false_e;
-        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_16_BIT;
-        vissObj->input.params.format[0].msb = 9;
-        vissObj->input.params.meta_height_before = 0;
-        vissObj->input.params.meta_height_after = 0;
-#else
-        /* information here is hardcoded for IMX219 sensor */
-        /* Typically this information should be obtained by querying the sensor */
         vissObj->input.params.width  = INPUT_WIDTH;
         vissObj->input.params.height = INPUT_HEIGHT;
         vissObj->input.params.num_exposures = 1;
         vissObj->input.params.line_interleaved = vx_false_e;
-        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_8_BIT;
-        vissObj->input.params.format[0].msb = 7;
         vissObj->input.params.meta_height_before = 0;
         vissObj->input.params.meta_height_after = 0;
+#if defined (SOC_AM62A)
+        /* information here is hardcoded for OV2312 sensor */
+        /* Typically this information should be obtained by querying the sensor */
+        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_16_BIT;
+        vissObj->input.params.format[0].msb = 9;
+#else
+        /* information here is hardcoded for IMX219 sensor */
+        /* Typically this information should be obtained by querying the sensor */
+        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_8_BIT;
+        vissObj->input.params.format[0].msb = 7;
 #endif
 
         vissObj->ae_awb_result_bufq_depth = APP_BUFQ_DEPTH;
