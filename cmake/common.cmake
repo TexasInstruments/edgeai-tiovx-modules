@@ -104,6 +104,22 @@ function(build_app app_name)
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}
                          )
+
+    set(BIN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+    FILE(GLOB BINS ${CMAKE_CURRENT_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE}/*)
+
+    set(TEST_DATA_INSTALL_DIR /opt/${PROJECT_NAME}/data/input)
+    FILE(GLOB TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/../data/input/*)
+
+    install(FILES ${BINS}
+            PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+            DESTINATION ${BIN_INSTALL_DIR})
+
+    install(FILES ${TEST_DATA}
+            DESTINATION ${TEST_DATA_INSTALL_DIR})
+
+    install(DIRECTORY DESTINATION ${TEST_DATA_INSTALL_DIR}/../output)
+
 endfunction()
 
 # Function for building a node:
@@ -122,14 +138,14 @@ function(build_lib lib_name lib_type lib_ver)
 
     set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 
+    FILE(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h)
+
     install(TARGETS ${lib_name}
             EXPORT ${lib_name}Targets
             LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}  # Shared Libs
             ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}  # Static Libs
             RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}  # Executables, DLLs
            )
-
-    FILE(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h)
 
     # Specify the header files to install
     install(FILES ${HDRS} DESTINATION ${INCLUDE_INSTALL_DIR})
