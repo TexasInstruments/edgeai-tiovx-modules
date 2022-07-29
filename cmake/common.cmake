@@ -88,6 +88,11 @@ function(build_app app_name)
                           ${TARGET_LINK_LIBS}
                           ${SYSTEM_LINK_LIBS}
                          )
+
+    set(BIN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+    FILE(GLOB BINS ${CMAKE_CURRENT_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE}/*)
+
+    install(FILES ${BINS} DESTINATION ${BIN_INSTALL_DIR})
 endfunction()
 
 # Function for building a node:
