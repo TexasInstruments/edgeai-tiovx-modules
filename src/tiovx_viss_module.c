@@ -78,13 +78,13 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
 #if defined(SOC_AM62A)
         if(obj->params.enable_ir_op)
         {
-            if(obj->output2.color_format == VX_DF_IMAGE_U8)
+            if(obj->output0.color_format == VX_DF_IMAGE_U8)
             {
                 obj->params.fcp[0].mux_output0  = TIVX_VPAC_VISS_MUX0_IR8;
                 /* If IR output is 8 bit use TIVX_VPAC_VISS_MUX0_IR8 
                 If IR output is Packed 12 bit use TIVX_VPAC_VISS_MUX0_IR12_P12*/
             }
-            else if(obj->output2.color_format == TIVX_DF_IMAGE_P12)
+            else if(obj->output0.color_format == TIVX_DF_IMAGE_P12)
             {
                 obj->params.fcp[0].mux_output0  = TIVX_VPAC_VISS_MUX0_IR12_P12;
             }
