@@ -370,12 +370,22 @@ static vx_status app_create_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 6);
-
-        obj->vissObj.output2.graph_parameter_index = graph_parameter_index;
+#if defined (SOC_AM62A)
+        if(obj->vissObj.params.enable_ir_op)
+        {
+            status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 4);
+            obj->vissObj.output0.graph_parameter_index = graph_parameter_index;
+            graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->vissObj.output0.image_handle[0];
+        }
+        else
+#endif
+        {
+            status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 6);
+            obj->vissObj.output2.graph_parameter_index = graph_parameter_index;
+            graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->vissObj.output2.image_handle[0];
+        }
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->vissObj.output2.image_handle[0];
         graph_parameter_index++;
     }
 
@@ -450,6 +460,11 @@ static vx_status app_run_graph(AppObj *obj)
     vx_uint32 h3aSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
     allocate_raw_image_buffers(&vissObj->input, inAddr, inSizes);
+#if defined (SOC_AM62A)
+    if(vissObj->params.enable_ir_op)
+        allocate_image_buffers(&vissObj->output0, outAddr, outSizes);
+    else
+#endif
     allocate_image_buffers(&vissObj->output2, outAddr, outSizes);
     allocate_user_data_buffers(vissObj->ae_awb_result_arr, aewbAddr, aewbSizes, APP_BUFQ_DEPTH);
     allocate_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr, h3aSizes, APP_BUFQ_DEPTH);
@@ -457,6 +472,11 @@ static vx_status app_run_graph(AppObj *obj)
     bufq = 0;
 
     assign_raw_image_buffers(&vissObj->input, inAddr[bufq], inSizes[bufq], bufq);
+#if defined (SOC_AM62A)
+    if(vissObj->params.enable_ir_op)
+        assign_image_buffers(&vissObj->output0, outAddr[bufq], outSizes[bufq], bufq);
+    else
+#endif
     assign_image_buffers(&vissObj->output2, outAddr[bufq], outSizes[bufq], bufq);
     assign_user_data_buffers(vissObj->ae_awb_result_arr, aewbAddr[bufq], aewbSizes[bufq], bufq);
     assign_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr[bufq], h3aSizes[bufq], bufq);
@@ -474,6 +494,11 @@ static vx_status app_run_graph(AppObj *obj)
         vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&vissObj->ae_awb_result_handle[0], 1);
 
         APP_PRINTF("Enqueueing output image buffers!\n");
+#if defined (SOC_AM62A)
+        if(vissObj->params.enable_ir_op)
+            vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->output0.graph_parameter_index, (vx_reference*)&vissObj->output0.image_handle[0], 1);
+        else
+#endif
         vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&vissObj->output2.image_handle[0], 1);
 
         APP_PRINTF("Enqueueing h3a stats buffers!\n");
@@ -490,6 +515,11 @@ static vx_status app_run_graph(AppObj *obj)
         }
 
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
+#if defined (SOC_AM62A)
+        if(vissObj->params.enable_ir_op)
+            vxGraphParameterDequeueDoneRef(obj->graph, vissObj->output0.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
+        else
+#endif
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&aewb_o, 1, &num_refs);
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->h3a_stats_graph_parameter_index, (vx_reference*)&h3a_o, 1, &num_refs);
@@ -510,7 +540,7 @@ static vx_status app_run_graph(AppObj *obj)
             vxMapUserDataObject(aewb_o, 0, sizeof(tivx_ae_awb_params_t), &aewb_buf_map_id, (void **)&aewb_buf, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST, 0);
 
 #if defined (SOC_AM62A)
-            OV2312_GetExpPrgFxn(&obj->sensor_in_data.ae_dynPrms);            
+            OV2312_GetExpPrgFxn(&obj->sensor_in_data.ae_dynPrms);
 #else
             IMX219_GetExpPrgFxn(&obj->sensor_in_data.ae_dynPrms);
 #endif
