@@ -233,7 +233,7 @@ static vx_status app_create_graph(AppObj *obj)
     if(status == VX_SUCCESS)
     {
         status = vxSetGraphScheduleConfig(obj->graph,
-                    VX_GRAPH_SCHEDULE_MODE_QUEUE_AUTO,
+                    VX_GRAPH_SCHEDULE_MODE_QUEUE_MANUAL,
                     graph_parameter_index,
                     graph_parameters_queue_params_list);
     }
@@ -268,6 +268,8 @@ static vx_status app_run_graph(AppObj *obj)
 
     TIOVXMultiScalerModuleObj *scalerObj = &obj->scalerObj;
     vx_int32 bufq;
+    vx_image input_o, output_o[2];
+    uint32_t num_refs;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *out1Addr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
@@ -287,7 +289,25 @@ static vx_status app_run_graph(AppObj *obj)
     assign_image_buffers(&scalerObj->output[0], out1Addr[bufq], out1Sizes[bufq], bufq);
     assign_image_buffers(&scalerObj->output[1], out2Addr[bufq], out2Sizes[bufq], bufq);
 
-    //status = vxProcessGraph(obj->graph);
+    APP_PRINTF("Enqueueing input buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&scalerObj->input.image_handle[0], 1);
+    APP_PRINTF("Enqueueing output buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, 1, (vx_reference*)&scalerObj->output[0].image_handle[0], 1);
+    vxGraphParameterEnqueueReadyRef(obj->graph, 2, (vx_reference*)&scalerObj->output[1].image_handle[0], 1);
+
+    APP_PRINTF("Processing!\n");
+    status = vxScheduleGraph(obj->graph);
+    if((vx_status)VX_SUCCESS != status) {
+      APP_PRINTF("Schedule Graph failed: %d!\n", status);
+    }
+    status = vxWaitGraph(obj->graph);
+    if((vx_status)VX_SUCCESS != status) {
+      APP_PRINTF("Wait Graph failed: %d!\n", status);
+    }
+
+    vxGraphParameterDequeueDoneRef(obj->graph, 0, (vx_reference*)&input_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, 1, (vx_reference*)&output_o[0], 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, 2, (vx_reference*)&output_o[1], 1, &num_refs);
 
     release_image_buffers(&scalerObj->input, inAddr[bufq], inSizes[bufq], bufq);
     release_image_buffers(&scalerObj->output[0], out1Addr[bufq], out1Sizes[bufq], bufq);
