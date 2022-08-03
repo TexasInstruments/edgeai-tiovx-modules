@@ -92,7 +92,16 @@ function(build_app app_name)
     set(BIN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
     FILE(GLOB BINS ${CMAKE_CURRENT_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE}/*)
 
-    install(FILES ${BINS} DESTINATION ${BIN_INSTALL_DIR})
+    install(FILES ${BINS}
+            PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+            DESTINATION ${BIN_INSTALL_DIR})
+
+    set(TEST_DATA_INSTALL_DIR /opt/${PROJECT_NAME}/data/input)
+    FILE(GLOB TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/../data/input/*)
+
+    install(FILES ${TEST_DATA}
+            DESTINATION ${TEST_DATA_INSTALL_DIR})
+
 endfunction()
 
 # Function for building a node:
