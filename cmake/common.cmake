@@ -102,6 +102,8 @@ function(build_app app_name)
     install(FILES ${TEST_DATA}
             DESTINATION ${TEST_DATA_INSTALL_DIR})
 
+    install(DIRECTORY DESTINATION ${TEST_DATA_INSTALL_DIR}/../output)
+
 endfunction()
 
 # Function for building a node:
