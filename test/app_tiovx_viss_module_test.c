@@ -72,7 +72,7 @@
 
 #if defined (SOC_AM62A)
     #define INPUT_WIDTH  INPUT_WIDTH_OV2312
-    #define INPUT_HEIGHT INPUT_WIDTH_OV2312
+    #define INPUT_HEIGHT INPUT_HEIGHT_OV2312
 #else
     #define INPUT_WIDTH  (1920)
     #define INPUT_HEIGHT (1080)
