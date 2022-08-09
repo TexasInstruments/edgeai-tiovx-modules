@@ -210,27 +210,27 @@ static vx_status app_init(AppObj *obj)
 
         vissObj->params.bypass_pcid = 0;
 
-        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_DISABLE;
-        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_ENABLE;
+        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_ENABLE;
+        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_DISABLE;
 
         if(vissObj->params.enable_ir_op)
         {
             /* Enable RAW IR output from VISS which can be tapped from output mux 0 
             Only 8 bit IR and Packed 12 bit IR supported on Output 0
             For 12 bit output in 16 bit container use Output 2*/
-            vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_EN;
+            vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_NA;
             vissObj->output_select[1] = TIOVX_VISS_MODULE_OUTPUT_NA;
-            vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_EN;
             vissObj->output_select[3] = TIOVX_VISS_MODULE_OUTPUT_NA;
             vissObj->output_select[4] = TIOVX_VISS_MODULE_OUTPUT_NA;
 
             /* As we are selecting output0, specify output0 image properties */
-            vissObj->output0.bufq_depth   = APP_BUFQ_DEPTH;
-            vissObj->output0.color_format = VX_DF_IMAGE_U8;
+            vissObj->output2.bufq_depth   = APP_BUFQ_DEPTH;
+            vissObj->output2.color_format = VX_DF_IMAGE_U16;
             /* For 8 bit IR output                      - VX_DF_IMAGE_U8
                For Packed 12 bit IR output              - TIVX_DF_IMAGE_P12 */
-            vissObj->output0.width        = OUTPUT_WIDTH;
-            vissObj->output0.height       = OUTPUT_HEIGHT;
+            vissObj->output2.width        = OUTPUT_WIDTH;
+            vissObj->output2.height       = OUTPUT_HEIGHT;
         }
         if(vissObj->params.enable_bayer_op) 
         {
