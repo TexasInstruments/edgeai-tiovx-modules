@@ -68,7 +68,6 @@
 #include "tivx_kernels_host_utils.h"
 #include <TI/tivx_img_proc.h>
 
-#include <TI/j7.h>
 #include <TI/j7_tidl.h>
 #include <tivx_utils_file_rd_wr.h>
 #include <tivx_utils_graph_perf.h>
