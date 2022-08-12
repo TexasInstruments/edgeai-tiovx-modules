@@ -103,8 +103,10 @@ typedef struct {
 } AppObj;
 
 static AppObj gAppObj;
+static AppObj gAppObj_IR;
 
 static vx_status app_init(AppObj *obj);
+static vx_status app_init_ir(AppObj *obj);
 static void app_deinit(AppObj *obj);
 static vx_status app_create_graph(AppObj *obj);
 static vx_status app_verify_graph(AppObj *obj);
@@ -120,32 +122,41 @@ static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
 vx_status app_modules_viss_test(vx_int32 argc, vx_char* argv[])
 {
     AppObj *obj = &gAppObj;
+    AppObj *obj_ir = &gAppObj_IR;
     vx_status status = VX_SUCCESS;
 
     status = app_init(obj);
     APP_PRINTF("App Init Done! \n");
 
+    status = app_init_ir(obj_ir);
+    APP_PRINTF("App Init IR Done! \n");
+
     if(status == VX_SUCCESS)
     {
         status = app_create_graph(obj);
+        status = app_create_graph(obj_ir);
         APP_PRINTF("App Create Graph Done! \n");
     }
 
     if(status == VX_SUCCESS)
     {
         status = app_verify_graph(obj);
+        status = app_verify_graph(obj_ir);
         APP_PRINTF("App Verify Graph Done! \n");
     }
     if (status == VX_SUCCESS)
     {
         status = app_run_graph(obj);
+        status = app_run_graph(obj_ir);
         APP_PRINTF("App Run Graph Done! \n");
     }
 
     app_delete_graph(obj);
+    app_delete_graph(obj_ir);
     APP_PRINTF("App Delete Graph Done! \n");
 
     app_deinit(obj);
+    app_deinit(obj_ir);
     APP_PRINTF("App De-init Done! \n");
 
     return status;
@@ -212,6 +223,181 @@ static vx_status app_init(AppObj *obj)
 
         vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_DISABLE;
         vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_ENABLE;
+
+        if(vissObj->params.enable_ir_op)
+        {
+            /* Enable RAW IR output from VISS which can be tapped from output mux 0 
+            Only 8 bit IR and Packed 12 bit IR supported on Output 0
+            For 12 bit output in 16 bit container use Output 2*/
+            vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_EN;
+            vissObj->output_select[1] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[3] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[4] = TIOVX_VISS_MODULE_OUTPUT_NA;
+
+            /* As we are selecting output0, specify output0 image properties */
+            vissObj->output0.bufq_depth   = APP_BUFQ_DEPTH;
+            vissObj->output0.color_format = VX_DF_IMAGE_U8;
+            /* For 8 bit IR output                      - VX_DF_IMAGE_U8
+               For Packed 12 bit IR output              - TIVX_DF_IMAGE_P12 */
+            vissObj->output0.width        = OUTPUT_WIDTH;
+            vissObj->output0.height       = OUTPUT_HEIGHT;
+        }
+        if(vissObj->params.enable_bayer_op) 
+        {
+            /* Enable NV12 output from VISS which can be tapped from output mux 2*/
+            vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[1] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_EN;
+            vissObj->output_select[3] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[4] = TIOVX_VISS_MODULE_OUTPUT_NA;
+
+            /* As we are selecting output2, specify output2 image properties */
+            vissObj->output2.bufq_depth   = APP_BUFQ_DEPTH;
+            vissObj->output2.color_format = VX_DF_IMAGE_NV12;
+            /* For 12 IR bit output in 16 bit container - VX_DF_IMAGE_U16  */
+            vissObj->output2.width        = OUTPUT_WIDTH;
+            vissObj->output2.height       = OUTPUT_HEIGHT;
+        }
+        /* Even else would also work in our case, as in our use case we are just using
+        either ir_enable or bayer_enable. But both flags i.e. ir_enable and bayer_enable 
+        are required, as VPAC3L supports both IR and BAYER outputs simultaneously*/
+#else
+        /* Enable NV12 output from VISS which can be tapped from output mux 2*/
+        vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_NA;
+        vissObj->output_select[1] = TIOVX_VISS_MODULE_OUTPUT_NA;
+        vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_EN;
+        vissObj->output_select[3] = TIOVX_VISS_MODULE_OUTPUT_NA;
+        vissObj->output_select[4] = TIOVX_VISS_MODULE_OUTPUT_NA;
+
+        /* As we are selecting output2, specify output2 image properties */
+        vissObj->output2.bufq_depth   = APP_BUFQ_DEPTH;
+        vissObj->output2.color_format = VX_DF_IMAGE_NV12;
+        vissObj->output2.width        = OUTPUT_WIDTH;
+        vissObj->output2.height       = OUTPUT_HEIGHT;
+#endif
+
+        vissObj->h3a_stats_bufq_depth = APP_BUFQ_DEPTH;
+
+        /* Initialize modules */
+        status = tiovx_viss_module_init(obj->context, vissObj, sensorObj);
+        APP_PRINTF("VISS Init Done! \n");
+
+#if defined(SOC_AM62A)
+        char *aewb_dcc_file = "/opt/imaging/ov2312/dcc_2a.bin";
+#else
+        char *aewb_dcc_file = "/opt/imaging/imx219/dcc_2a.bin";
+#endif
+        FILE *aewb_fp = NULL;
+
+        aewb_fp = fopen(aewb_dcc_file, "rb");
+        if(aewb_fp == NULL)
+        {
+            APP_ERROR("Unable to open 2A DCC file path = %s \n", aewb_dcc_file);
+            return VX_FAILURE;
+        }
+
+        fseek(aewb_fp, 0, SEEK_END);
+        uint32_t aewb_dcc_file_size = ftell(aewb_fp);
+        fseek(aewb_fp, 0, SEEK_SET);
+
+        uint8_t *aewb_dcc_buf = (uint8_t *)malloc(aewb_dcc_file_size);
+        if(aewb_dcc_buf == NULL)
+        {
+            APP_ERROR("Unable to allocate %d bytes for aewb_dcc_buf \n", aewb_dcc_file_size);
+            return VX_FAILURE;
+        }
+
+        uint32_t read_size = fread(aewb_dcc_buf, sizeof(uint8_t), aewb_dcc_file_size, aewb_fp);
+
+        if(read_size != aewb_dcc_file_size)
+        {
+            APP_ERROR("Bytes read %d bytes is not same as file size %d \n", read_size, aewb_dcc_file_size);
+            return VX_FAILURE;
+        }
+
+        obj->aewbConfig.sensor_dcc_id       = sensorObj->sensorParams.dccId;
+        obj->aewbConfig.sensor_img_format   = 0; /*!<Image Format : BAYER = 0x0, Rest unsupported */
+        obj->aewbConfig.sensor_img_phase    = 3; /*!<Image Format : BGGR = 0, GBRG = 1, GRBG = 2, RGGB = 3 */
+
+        obj->aewbConfig.ae_mode = ALGORITHMS_ISS_AE_AUTO; /*!<AWB Mode : 0 = Auto, 1 = Manual, 2 = Disabled */
+        obj->aewbConfig.awb_mode = ALGORITHMS_ISS_AWB_AUTO; /*!<AE Mode : 0 = Auto, 1 = Manual, 2 = Disabled */
+
+        obj->aewbConfig.awb_num_skip_frames = 0; /*!<0 = Process every frame */
+        obj->aewbConfig.ae_num_skip_frames  = 0; /*!<0 = Process every frame */
+        obj->aewbConfig.channel_id          = 0; /*!<channel ID */
+
+        status = TI_2A_wrapper_create(&obj->aewbObj, &obj->aewbConfig, aewb_dcc_buf, aewb_dcc_file_size);
+        if(status == VX_FAILURE)
+        {
+            APP_ERROR("Error during 2A create!\n");
+        }
+    }
+
+    return status;
+}
+
+static vx_status app_init_ir(AppObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+
+    /* Create OpenVx Context */
+    obj->context = vxCreateContext();
+    status = vxGetStatus((vx_reference) obj->context);
+
+    if(status == VX_SUCCESS)
+    {
+        tivxHwaLoadKernels(obj->context);
+    }
+
+    if(status == VX_SUCCESS)
+    {
+        TIOVXVISSModuleObj *vissObj = &obj->vissObj;
+
+        SensorObj *sensorObj = &obj->sensorObj;
+        tiovx_querry_sensor(sensorObj);
+#if defined(SOC_AM62A)
+        tiovx_init_sensor(sensorObj,"SENSOR_OV2312_UB953_LI");
+#else
+        tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX219_RPI");
+#endif    
+
+        tivx_vpac_viss_params_init(&vissObj->params);
+
+#if defined(SOC_AM62A)        
+        snprintf(vissObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/ov2312/dcc_viss.bin");
+#else
+        snprintf(vissObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/imx219/dcc_viss.bin");
+#endif
+
+        vissObj->input.bufq_depth = APP_BUFQ_DEPTH;
+
+        vissObj->input.params.width  = INPUT_WIDTH;
+        vissObj->input.params.height = INPUT_HEIGHT;
+        vissObj->input.params.num_exposures = 1;
+        vissObj->input.params.line_interleaved = vx_false_e;
+        vissObj->input.params.meta_height_before = 0;
+        vissObj->input.params.meta_height_after = 0;
+#if defined(SOC_AM62A)
+        /* information here is hardcoded for OV2312 sensor */
+        /* Typically this information should be obtained by querying the sensor */
+        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_16_BIT;
+        vissObj->input.params.format[0].msb = 9;
+#else
+        /* information here is hardcoded for IMX219 sensor */
+        /* Typically this information should be obtained by querying the sensor */
+        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_8_BIT;
+        vissObj->input.params.format[0].msb = 7;
+#endif
+
+        vissObj->ae_awb_result_bufq_depth = APP_BUFQ_DEPTH;
+
+#if defined(SOC_AM62A)
+
+        vissObj->params.bypass_pcid = 0;
+
+        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_ENABLE;
+        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_DISABLE;
 
         if(vissObj->params.enable_ir_op)
         {
@@ -454,6 +640,7 @@ static vx_status app_run_graph(AppObj *obj)
 
 #if defined(SOC_AM62A)
     char * input_filename = "/opt/edgeai-tiovx-modules/data/input/ov2312_raw/rgbir/frame-1-000001.bin";
+    char * output_filename_ir = "/opt/edgeai-tiovx-modules/data/output/ov2312-rgbir-1600x1300-frame-1-000001_ir.nv12";
     char * output_filename = "/opt/edgeai-tiovx-modules/data/output/ov2312-rgbir-1600x1300-frame-1-000001.nv12";
 #else
     char * input_filename = "/opt/edgeai-tiovx-modules/data/input/imx219_1920x1080_capture.raw";
@@ -565,7 +752,7 @@ static vx_status app_run_graph(AppObj *obj)
 
 #if defined(SOC_AM62A)
         if(vissObj->params.enable_ir_op)
-            writeImage(output_filename, vissObj->output0.image_handle[0]);
+            writeImage(output_filename_ir, vissObj->output0.image_handle[0]);
         if(vissObj->params.enable_bayer_op)
             writeImage(output_filename, vissObj->output2.image_handle[0]);
 #else
