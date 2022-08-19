@@ -26,8 +26,8 @@ endif()
 set(TARGET_PLATFORM     J7)
 set(TARGET_CPU          A72)
 set(TARGET_OS           LINUX)
-set(TARGET_SOC          J721E)
-set(TARGET_SOC_LOWER    j721e)
+set(TARGET_SOC          J721S2)
+set(TARGET_SOC_LOWER    j721s2)
 
 add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
