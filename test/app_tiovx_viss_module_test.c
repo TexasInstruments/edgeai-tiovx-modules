@@ -221,8 +221,8 @@ static vx_status app_init(AppObj *obj)
 
         vissObj->params.bypass_pcid = 0;
 
-        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_DISABLE;
-        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_ENABLE;
+        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_ENABLE;
+        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_DISABLE;
 
         if(vissObj->params.enable_ir_op)
         {
@@ -396,8 +396,8 @@ static vx_status app_init_ir(AppObj *obj)
 
         vissObj->params.bypass_pcid = 0;
 
-        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_ENABLE;
-        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_DISABLE;
+        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_DISABLE;
+        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_ENABLE;
 
         if(vissObj->params.enable_ir_op)
         {
@@ -639,7 +639,7 @@ static vx_status app_run_graph(AppObj *obj)
     vx_status status = VX_SUCCESS;
 
 #if defined(SOC_AM62A)
-    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/ov2312_raw/rgbir/frame-1-000001.bin";
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/ov2312_1600x1300_capture.raw";
     char * output_filename_ir = "/opt/edgeai-tiovx-modules/data/output/ov2312-rgbir-1600x1300-frame-1-000001_ir.nv12";
     char * output_filename = "/opt/edgeai-tiovx-modules/data/output/ov2312-rgbir-1600x1300-frame-1-000001.nv12";
 #else
