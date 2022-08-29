@@ -127,7 +127,19 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
         obj->params.fcp[0].mux_output4  = 0;
     }
 
-    obj->params.h3a_in              = TIVX_VPAC_VISS_H3A_IN_LSC;
+#if defined(SOC_AM62A)
+    if(obj->params.bypass_pcid)
+        obj->params.enable_ir_op = TIVX_VPAC_VISS_IR_DISABLE;
+
+    if(obj->params.enable_ir_op)
+        obj->params.h3a_in              = TIVX_VPAC_VISS_H3A_IN_LSC;
+    else if(obj->params.enable_bayer_op && !(obj->params.bypass_pcid))
+        obj->params.h3a_in              = TIVX_VPAC_VISS_H3A_IN_PCID;
+    else if(obj->params.enable_bayer_op && obj->params.bypass_pcid)
+        obj->params.h3a_in              = TIVX_VPAC_VISS_H3A_IN_LSC;
+#else
+    obj->params.h3a_in              = TIVX_VPAC_VISS_H3A_IN_LSC;  
+#endif
     obj->params.h3a_aewb_af_mode    = TIVX_VPAC_VISS_H3A_MODE_AEWB;
     obj->params.bypass_nsf4         = 0;
     obj->params.enable_ctx          = 1;
