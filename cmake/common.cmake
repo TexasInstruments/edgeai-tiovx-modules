@@ -23,11 +23,27 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX /usr CACHE PATH "Installation Prefix" FORCE)
 endif()
 
-set(TARGET_PLATFORM     J7)
-set(TARGET_CPU          A72)
-set(TARGET_OS           LINUX)
-set(TARGET_SOC          J721E)
-set(TARGET_SOC_LOWER    j721e)
+if (NOT DEFINED ENV{SOC})
+    message(FATAL_ERROR "SOC not defined.")
+endif()
+
+set(TARGET_SOC_LOWER $ENV{SOC})
+
+if ("${TARGET_SOC_LOWER}" STREQUAL "j721e")
+    set(TARGET_PLATFORM     J7)
+    set(TARGET_CPU          A72)
+    set(TARGET_OS           LINUX)
+    set(TARGET_SOC          J721E)
+elseif ("${TARGET_SOC_LOWER}" STREQUAL "j721s2")
+    set(TARGET_PLATFORM     J7)
+    set(TARGET_CPU          A72)
+    set(TARGET_OS           LINUX)
+    set(TARGET_SOC          J721S2)
+else()
+    message(FATAL_ERROR "SOC ${TARGET_SOC_LOWER} is not supported.")
+endif()
+
+message("SOC=${TARGET_SOC_LOWER}")
 
 add_definitions(
     -DTARGET_CPU=${TARGET_CPU}
