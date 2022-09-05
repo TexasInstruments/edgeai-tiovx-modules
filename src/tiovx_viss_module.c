@@ -68,8 +68,6 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
 
     SensorObj *sensorObj = obj->sensorObj;
 
-    tivx_vpac_viss_params_init(&obj->params);
-
     obj->params.sensor_dcc_id       = sensorObj->sensorParams.dccId;
     obj->params.use_case            = 0;
     obj->params.fcp[0].ee_mode      = TIVX_VPAC_VISS_EE_MODE_OFF;
@@ -77,7 +75,25 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
 
     if(obj->output_select[0] == TIOVX_VISS_MODULE_OUTPUT_EN)
     {
-        obj->params.fcp[0].mux_output0  = 0;
+#if defined(SOC_AM62A)
+        if(obj->params.enable_ir_op)
+        {
+            if(obj->output0.color_format == VX_DF_IMAGE_U8)
+            {
+                obj->params.fcp[0].mux_output0  = TIVX_VPAC_VISS_MUX0_IR8;
+                /* If IR output is 8 bit use TIVX_VPAC_VISS_MUX0_IR8 
+                If IR output is Packed 12 bit use TIVX_VPAC_VISS_MUX0_IR12_P12*/
+            }
+            else if(obj->output0.color_format == TIVX_DF_IMAGE_P12)
+            {
+                obj->params.fcp[0].mux_output0  = TIVX_VPAC_VISS_MUX0_IR12_P12;
+            }
+        }
+        else
+#endif
+        {
+            obj->params.fcp[0].mux_output0  = 0;
+        }
     }
     if(obj->output_select[1] == TIOVX_VISS_MODULE_OUTPUT_EN)
     {
@@ -94,6 +110,13 @@ static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVIS
         {
             obj->params.fcp[0].mux_output2  = TIVX_VPAC_VISS_MUX2_YUV422;
         }
+#if defined(SOC_AM62A)
+        else if((obj->output2.color_format == VX_DF_IMAGE_U16) &&
+                (obj->params.enable_ir_op))
+        {
+            obj->params.fcp[0].mux_output2 = TIVX_VPAC_VISS_MUX2_IR12_U16;
+        }
+#endif
     }
     if(obj->output_select[3] == TIOVX_VISS_MODULE_OUTPUT_EN)
     {
