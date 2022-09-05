@@ -67,8 +67,16 @@
 
 #define APP_BUFQ_DEPTH   (1)
 
-#define INPUT_WIDTH  (1920)
-#define INPUT_HEIGHT (1080)
+#define INPUT_WIDTH_OV2312  (1600)
+#define INPUT_HEIGHT_OV2312 (1300)
+
+#if defined (SOC_AM62A)
+    #define INPUT_WIDTH  INPUT_WIDTH_OV2312
+    #define INPUT_HEIGHT INPUT_HEIGHT_OV2312
+#else
+    #define INPUT_WIDTH  (1920)
+    #define INPUT_HEIGHT (1080)
+#endif
 
 #define OUTPUT_WIDTH  (INPUT_WIDTH)
 #define OUTPUT_HEIGHT (INPUT_HEIGHT)
@@ -104,6 +112,7 @@ static vx_status app_run_graph(AppObj *obj);
 static void app_delete_graph(AppObj *obj);
 
 static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
+static int32_t OV2312_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms);
 
 vx_status app_modules_viss_test(vx_int32 argc, vx_char* argv[])
 {
@@ -157,36 +166,88 @@ static vx_status app_init(AppObj *obj)
 
         SensorObj *sensorObj = &obj->sensorObj;
         tiovx_querry_sensor(sensorObj);
+#if defined (SOC_AM62A)
+        tiovx_init_sensor(sensorObj,"SENSOR_OV2312_UB953_LI");
+#else
         tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX219_RPI");
+#endif    
 
+        tivx_vpac_viss_params_init(&vissObj->params);
+
+#if defined (SOC_AM62A)        
+        snprintf(vissObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/ov2312/dcc_viss.bin");
+#else
         snprintf(vissObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/imx219/dcc_viss.bin");
+#endif
 
         vissObj->input.bufq_depth = APP_BUFQ_DEPTH;
-        /* information here is hardcoded for IMX219 sensor */
-        /* Typically these information should be obtained by querying the sensor */
+
         vissObj->input.params.width  = INPUT_WIDTH;
         vissObj->input.params.height = INPUT_HEIGHT;
         vissObj->input.params.num_exposures = 1;
         vissObj->input.params.line_interleaved = vx_false_e;
-        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_8_BIT;
-        vissObj->input.params.format[0].msb = 7;
         vissObj->input.params.meta_height_before = 0;
         vissObj->input.params.meta_height_after = 0;
+#if defined (SOC_AM62A)
+        /* information here is hardcoded for OV2312 sensor */
+        /* Typically this information should be obtained by querying the sensor */
+        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_16_BIT;
+        vissObj->input.params.format[0].msb = 9;
+#else
+        /* information here is hardcoded for IMX219 sensor */
+        /* Typically this information should be obtained by querying the sensor */
+        vissObj->input.params.format[0].pixel_container = TIVX_RAW_IMAGE_8_BIT;
+        vissObj->input.params.format[0].msb = 7;
+#endif
 
         vissObj->ae_awb_result_bufq_depth = APP_BUFQ_DEPTH;
 
-        /* Enable NV12 output from VISS which can be tapped from output mux 2*/
-        vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_NA;
-        vissObj->output_select[1] = TIOVX_VISS_MODULE_OUTPUT_NA;
-        vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_EN;
-        vissObj->output_select[3] = TIOVX_VISS_MODULE_OUTPUT_NA;
-        vissObj->output_select[4] = TIOVX_VISS_MODULE_OUTPUT_NA;
+#if defined(SOC_AM62A)
 
-        /* As we are selecting output2, specify output2 image properties */
-        vissObj->output2.bufq_depth   = APP_BUFQ_DEPTH;
-        vissObj->output2.color_format = VX_DF_IMAGE_NV12;
-        vissObj->output2.width        = OUTPUT_WIDTH;
-        vissObj->output2.height       = OUTPUT_HEIGHT;
+        vissObj->params.bypass_pcid = 0;
+
+        vissObj->params.enable_ir_op = TIVX_VPAC_VISS_IR_DISABLE;
+        vissObj->params.enable_bayer_op = TIVX_VPAC_VISS_BAYER_ENABLE;
+
+        if(vissObj->params.enable_ir_op)
+        {
+            /* Enable RAW IR output from VISS which can be tapped from output mux 0 
+            Only 8 bit IR and Packed 12 bit IR supported on Output 0
+            For 12 bit output in 16 bit container use Output 2*/
+            vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_EN;
+            vissObj->output_select[1] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[3] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[4] = TIOVX_VISS_MODULE_OUTPUT_NA;
+
+            /* As we are selecting output0, specify output0 image properties */
+            vissObj->output0.bufq_depth   = APP_BUFQ_DEPTH;
+            vissObj->output0.color_format = VX_DF_IMAGE_U8;
+            /* For 8 bit IR output                      - VX_DF_IMAGE_U8
+               For Packed 12 bit IR output              - TIVX_DF_IMAGE_P12 */
+            vissObj->output0.width        = OUTPUT_WIDTH;
+            vissObj->output0.height       = OUTPUT_HEIGHT;
+        }
+        if(vissObj->params.enable_bayer_op) 
+        /* Even else would also work in our case, as in our use case we are just using
+        either ir_enable or bayer_enable. But both flags i.e. ir_enable and bayer_enable 
+        are required, as VPAC3L supports both IR and BAYER outputs simultaneously*/
+#endif
+        {
+            /* Enable NV12 output from VISS which can be tapped from output mux 2*/
+            vissObj->output_select[0] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[1] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[2] = TIOVX_VISS_MODULE_OUTPUT_EN;
+            vissObj->output_select[3] = TIOVX_VISS_MODULE_OUTPUT_NA;
+            vissObj->output_select[4] = TIOVX_VISS_MODULE_OUTPUT_NA;
+
+            /* As we are selecting output2, specify output2 image properties */
+            vissObj->output2.bufq_depth   = APP_BUFQ_DEPTH;
+            vissObj->output2.color_format = VX_DF_IMAGE_NV12;
+            /* For 12 IR bit output in 16 bit container - VX_DF_IMAGE_U16  */
+            vissObj->output2.width        = OUTPUT_WIDTH;
+            vissObj->output2.height       = OUTPUT_HEIGHT;
+        }
 
         vissObj->h3a_stats_bufq_depth = APP_BUFQ_DEPTH;
 
@@ -194,7 +255,11 @@ static vx_status app_init(AppObj *obj)
         status = tiovx_viss_module_init(obj->context, vissObj, sensorObj);
         APP_PRINTF("VISS Init Done! \n");
 
+#if defined (SOC_AM62A)
+        char *aewb_dcc_file = "/opt/imaging/ov2312/dcc_2a.bin";
+#else
         char *aewb_dcc_file = "/opt/imaging/imx219/dcc_2a.bin";
+#endif
         FILE *aewb_fp = NULL;
 
         aewb_fp = fopen(aewb_dcc_file, "rb");
@@ -305,12 +370,22 @@ static vx_status app_create_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 6);
-
-        obj->vissObj.output2.graph_parameter_index = graph_parameter_index;
+#if defined (SOC_AM62A)
+        if(obj->vissObj.params.enable_ir_op)
+        {
+            status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 4);
+            obj->vissObj.output0.graph_parameter_index = graph_parameter_index;
+            graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->vissObj.output0.image_handle[0];
+        }
+        else
+#endif
+        {
+            status = add_graph_parameter_by_node_index(obj->graph, obj->vissObj.node, 6);
+            obj->vissObj.output2.graph_parameter_index = graph_parameter_index;
+            graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->vissObj.output2.image_handle[0];
+        }
         graph_parameters_queue_params_list[graph_parameter_index].graph_parameter_index = graph_parameter_index;
         graph_parameters_queue_params_list[graph_parameter_index].refs_list_size = APP_BUFQ_DEPTH;
-        graph_parameters_queue_params_list[graph_parameter_index].refs_list = (vx_reference*)&obj->vissObj.output2.image_handle[0];
         graph_parameter_index++;
     }
 
@@ -356,8 +431,13 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
+#if defined (SOC_AM62A)
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/ov2312_1600x1300_capture.raw";
+    char * output_filename = "/opt/edgeai-tiovx-modules/data/output/ov2312_1920x1080_capture_nv12.yuv";
+#else
     char * input_filename = "/opt/edgeai-tiovx-modules/data/input/imx219_1920x1080_capture.raw";
     char * output_filename = "/opt/edgeai-tiovx-modules/data/output/imx219_1920x1080_capture_nv12.yuv";
+#endif
 
     tivx_raw_image input_o;
     vx_image output_o;
@@ -380,6 +460,11 @@ static vx_status app_run_graph(AppObj *obj)
     vx_uint32 h3aSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
 
     allocate_raw_image_buffers(&vissObj->input, inAddr, inSizes);
+#if defined (SOC_AM62A)
+    if(vissObj->params.enable_ir_op)
+        allocate_image_buffers(&vissObj->output0, outAddr, outSizes);
+    else
+#endif
     allocate_image_buffers(&vissObj->output2, outAddr, outSizes);
     allocate_user_data_buffers(vissObj->ae_awb_result_arr, aewbAddr, aewbSizes, APP_BUFQ_DEPTH);
     allocate_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr, h3aSizes, APP_BUFQ_DEPTH);
@@ -387,6 +472,11 @@ static vx_status app_run_graph(AppObj *obj)
     bufq = 0;
 
     assign_raw_image_buffers(&vissObj->input, inAddr[bufq], inSizes[bufq], bufq);
+#if defined (SOC_AM62A)
+    if(vissObj->params.enable_ir_op)
+        assign_image_buffers(&vissObj->output0, outAddr[bufq], outSizes[bufq], bufq);
+    else
+#endif
     assign_image_buffers(&vissObj->output2, outAddr[bufq], outSizes[bufq], bufq);
     assign_user_data_buffers(vissObj->ae_awb_result_arr, aewbAddr[bufq], aewbSizes[bufq], bufq);
     assign_user_data_buffers(vissObj->h3a_stats_arr, h3aAddr[bufq], h3aSizes[bufq], bufq);
@@ -404,6 +494,11 @@ static vx_status app_run_graph(AppObj *obj)
         vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&vissObj->ae_awb_result_handle[0], 1);
 
         APP_PRINTF("Enqueueing output image buffers!\n");
+#if defined (SOC_AM62A)
+        if(vissObj->params.enable_ir_op)
+            vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->output0.graph_parameter_index, (vx_reference*)&vissObj->output0.image_handle[0], 1);
+        else
+#endif
         vxGraphParameterEnqueueReadyRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&vissObj->output2.image_handle[0], 1);
 
         APP_PRINTF("Enqueueing h3a stats buffers!\n");
@@ -420,6 +515,11 @@ static vx_status app_run_graph(AppObj *obj)
         }
 
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->input.graph_parameter_index, (vx_reference*)&input_o, 1, &num_refs);
+#if defined (SOC_AM62A)
+        if(vissObj->params.enable_ir_op)
+            vxGraphParameterDequeueDoneRef(obj->graph, vissObj->output0.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
+        else
+#endif
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->output2.graph_parameter_index, (vx_reference*)&output_o, 1, &num_refs);
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->ae_awb_result_graph_parameter_index, (vx_reference*)&aewb_o, 1, &num_refs);
         vxGraphParameterDequeueDoneRef(obj->graph, vissObj->h3a_stats_graph_parameter_index, (vx_reference*)&h3a_o, 1, &num_refs);
@@ -439,7 +539,11 @@ static vx_status app_run_graph(AppObj *obj)
             vxMapUserDataObject(h3a_o, 0, sizeof(tivx_h3a_data_t), &h3a_buf_map_id, (void **)&h3a_buf, VX_READ_ONLY, VX_MEMORY_TYPE_HOST, 0);
             vxMapUserDataObject(aewb_o, 0, sizeof(tivx_ae_awb_params_t), &aewb_buf_map_id, (void **)&aewb_buf, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST, 0);
 
+#if defined (SOC_AM62A)
+            OV2312_GetExpPrgFxn(&obj->sensor_in_data.ae_dynPrms);
+#else
             IMX219_GetExpPrgFxn(&obj->sensor_in_data.ae_dynPrms);
+#endif
 
             TI_2A_wrapper_process(&obj->aewbObj, &obj->aewbConfig, h3a_buf, &obj->sensor_in_data, aewb_buf, &obj->sensor_out_data);
 
@@ -487,3 +591,30 @@ static int32_t IMX219_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms)
     p_ae_dynPrms->numAeDynParams = count;
     return (status);
 }
+
+#if defined (SOC_AM62A)
+/* Typically this is obtained by querying the sensor */
+static int32_t OV2312_GetExpPrgFxn(IssAeDynamicParams *p_ae_dynPrms)
+{
+    int32_t  status = 0;
+    uint8_t count = 0;
+
+    p_ae_dynPrms->targetBrightnessRange.min = 40;
+    p_ae_dynPrms->targetBrightnessRange.max = 50;
+    p_ae_dynPrms->targetBrightness = 45;
+    p_ae_dynPrms->threshold = 1;
+    p_ae_dynPrms->enableBlc = 1;
+    p_ae_dynPrms->exposureTimeStepSize = 1;
+
+    p_ae_dynPrms->exposureTimeRange[count].min = 1;
+    p_ae_dynPrms->exposureTimeRange[count].max = 1404;
+    p_ae_dynPrms->analogGainRange[count].min = 1;
+    p_ae_dynPrms->analogGainRange[count].max = 511;
+    p_ae_dynPrms->digitalGainRange[count].min = 1;
+    p_ae_dynPrms->digitalGainRange[count].max = 4095;
+    count++;
+
+    p_ae_dynPrms->numAeDynParams = count;
+    return (status);
+}
+#endif
