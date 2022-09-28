@@ -172,6 +172,9 @@ typedef struct {
     /*! DCC config file path for LDC */
     vx_char dcc_config_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
 
+    /*! LUT file mesh image based LDC config */
+    vx_char lut_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
+
     /*! LDC input Image Object  */
     ImgObj input;
 
