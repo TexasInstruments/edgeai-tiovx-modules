@@ -60,7 +60,7 @@
  *
  */
 
-#include "app_common.h"
+#include <tiovx_utils.h>
 
 static vx_uint32 get_tensor_bitdepth(vx_enum tensor_type);
 
