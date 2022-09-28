@@ -60,7 +60,7 @@
  *
  */
 
-#include "app_common.h"
+#include <tiovx_utils.h>
 #include "tiovx_sensor_module.h"
 #include "tiovx_viss_module.h"
 #include "ti_2a_wrapper.h"
@@ -461,7 +461,10 @@ static vx_status app_run_graph(AppObj *obj)
 #endif
 
     tivx_raw_image input_o;
-    vx_image output0_o, output2_o;
+#if defined(SOC_AM62A)
+    vx_image output0_o;
+#endif
+    vx_image output2_o;
     vx_user_data_object aewb_o;
     vx_user_data_object h3a_o;
 

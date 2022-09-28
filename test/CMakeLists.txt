@@ -10,7 +10,6 @@ set(SRC_FILES
     app_tiovx_viss_module_test.c
     app_tiovx_ldc_module_test.c
     app_tiovx_pyramid_module_test.c
-    app_common.c
     main.c)
 
 if ("${TARGET_SOC}" STREQUAL "J721E" OR "${TARGET_SOC}" STREQUAL "J721S2")
