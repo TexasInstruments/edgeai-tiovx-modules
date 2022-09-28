@@ -471,13 +471,17 @@ static vx_status app_run_graph(AppObj *obj)
     int32_t frame_count;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+#if defined(SOC_AM62A)
     void *out0Addr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
+#endif
     void *out2Addr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *aewbAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *h3aAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
 
     vx_uint32 inSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+#if defined(SOC_AM62A)
     vx_uint32 out0Sizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
+#endif
     vx_uint32 out2Sizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
     vx_uint32 aewbSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
     vx_uint32 h3aSizes[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES];
