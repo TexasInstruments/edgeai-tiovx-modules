@@ -149,8 +149,9 @@ static vx_status app_init(AppObj *obj)
         tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX390_UB953_D3");
 
         snprintf(ldcObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/imx390/dcc_ldc_wdr.bin");
+        snprintf(ldcObj->lut_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/edgeai-tiovx-modules/data/input/imx390_ldc_lut_1920x1080.bin");
 
-        ldcObj->ldc_mode = TIOVX_MODULE_LDC_OP_MODE_DCC_DATA;
+        ldcObj->ldc_mode = TIOVX_MODULE_LDC_OP_MODE_DCC_DATA; //TIOVX_MODULE_LDC_OP_MODE_MESH_IMAGE
         ldcObj->en_out_image_write = 0;
         ldcObj->en_output1 = 0;
 
