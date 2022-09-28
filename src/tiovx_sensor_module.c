@@ -86,21 +86,25 @@ vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName)
     {
         sensorObj->sensorParams.dccId=390;
     }
-    if(strcmp(sensorObj->sensor_name, "SENSOR_ONSEMI_AR0820_UB953_LI") == 0)
+    else if(strcmp(sensorObj->sensor_name, "SENSOR_ONSEMI_AR0820_UB953_LI") == 0)
     {
         sensorObj->sensorParams.dccId=820;
     }
-    if(strcmp(sensorObj->sensor_name, "SENSOR_ONSEMI_AR0233_UB953_MARS") == 0)
+    else if(strcmp(sensorObj->sensor_name, "SENSOR_ONSEMI_AR0233_UB953_MARS") == 0)
     {
         sensorObj->sensorParams.dccId=233;
     }
-    if(strcmp(sensorObj->sensor_name, "SENSOR_SONY_IMX219_RPI") == 0)
+    else if(strcmp(sensorObj->sensor_name, "SENSOR_SONY_IMX219_RPI") == 0)
     {
         sensorObj->sensorParams.dccId=219;
     }
-    if(strcmp(sensorObj->sensor_name, "SENSOR_OV2312_UB953_LI") == 0)
+    else if(strcmp(sensorObj->sensor_name, "SENSOR_OV2312_UB953_LI") == 0)
     {
         sensorObj->sensorParams.dccId=2312;
+    }
+    else
+    {
+        status = VX_FAILURE;
     }
 
     TIOVX_MODULE_PRINTF("[SENSOR-MODULE] Dcc ID = %d\n", sensorObj->sensorParams.dccId);
