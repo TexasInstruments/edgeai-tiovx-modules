@@ -60,7 +60,7 @@
  *
  */
 
-#include "app_common.h"
+#include <tiovx_utils.h>
 #include "tiovx_pyramid_module.h"
 
 #define APP_BUFQ_DEPTH   (1)

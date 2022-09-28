@@ -111,7 +111,7 @@ function(build_app app_name)
                          )
 
     set(BIN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
-    FILE(GLOB BINS ${CMAKE_CURRENT_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE}/*)
+    set(BINS ${CMAKE_CURRENT_SOURCE_DIR}/../bin/${CMAKE_BUILD_TYPE}/${app_name})
 
     set(TEST_DATA_INSTALL_DIR /opt/${PROJECT_NAME}/data/input)
     FILE(GLOB TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/../data/input/*)
@@ -143,7 +143,7 @@ function(build_lib lib_name lib_type lib_ver)
 
     set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 
-    FILE(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h)
+    FILE(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 
     install(TARGETS ${lib_name}
             EXPORT ${lib_name}Targets

@@ -60,7 +60,7 @@
  *
  */
 
-#include "app_common.h"
+#include <tiovx_utils.h>
 #include "tiovx_sensor_module.h"
 #include "tiovx_ldc_module.h"
 
