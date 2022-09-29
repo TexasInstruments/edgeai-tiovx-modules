@@ -75,21 +75,6 @@
 #include "tiovx_modules_common.h"
 #include "tiovx_sensor_module.h"
 
-/** \brief Default LDC table width.  Can be modified as needed for use case
- *
- */
-#define LDC_TABLE_WIDTH     (1920)
-
-/** \brief Default LDC table width.  Can be modified as needed for use case
- *
- */
-#define LDC_TABLE_HEIGHT    (1080)
-
-/** \brief Default LDC downscale factor.  Can be modified as needed for use case
- *
- */
-#define LDC_DS_FACTOR       (2)
-
 /** \brief Default LDC block width.  Can be modified as needed for use case
  *
  */

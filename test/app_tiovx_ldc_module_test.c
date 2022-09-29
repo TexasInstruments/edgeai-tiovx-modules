@@ -72,6 +72,10 @@
 #define OUTPUT_WIDTH  (1920)
 #define OUTPUT_HEIGHT (1080)
 
+#define LDC_TABLE_WIDTH     (1920)
+#define LDC_TABLE_HEIGHT    (1080)
+#define LDC_DS_FACTOR       (2)
+
 typedef struct {
 
     /* OpenVX references */
@@ -164,6 +168,10 @@ static vx_status app_init(AppObj *obj)
         ldcObj->output0.color_format = VX_DF_IMAGE_NV12;
         ldcObj->output0.width = OUTPUT_WIDTH;
         ldcObj->output0.height = OUTPUT_HEIGHT;
+
+        ldcObj->table_width  = LDC_TABLE_WIDTH;
+        ldcObj->table_height = LDC_TABLE_HEIGHT;
+        ldcObj->ds_factor    = LDC_DS_FACTOR;
 
         /* Initialize modules */
         status = tiovx_ldc_module_init(obj->context, ldcObj, sensorObj);
