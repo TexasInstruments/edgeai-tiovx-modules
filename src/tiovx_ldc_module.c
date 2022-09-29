@@ -458,9 +458,6 @@ vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj, Sens
     obj->mesh_img      = NULL;
     obj->warp_matrix   = NULL;
     obj->dcc_config    = NULL;
-    obj->table_width  = LDC_TABLE_WIDTH;
-    obj->table_height = LDC_TABLE_HEIGHT;
-    obj->ds_factor    = LDC_DS_FACTOR;
 
     if(obj->ldc_mode == TIOVX_MODULE_LDC_OP_MODE_DCC_DATA)
     {
