@@ -151,6 +151,12 @@ typedef struct {
     /*! LDC downscale factor, set to \ref LDC_DS_FACTOR  */
     vx_uint32 ds_factor;
 
+    /*! LDC Output starting x-coordinate */
+    vx_uint32 init_x;
+
+    /*! LDC Output starting y-coordinate */
+    vx_uint32 init_y;
+
     /*! User data object for DCC config parameter, used as node parameter of LDC node */
     vx_user_data_object dcc_config;
 

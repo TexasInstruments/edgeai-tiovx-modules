@@ -225,6 +225,8 @@ static vx_status tiovx_ldc_module_configure_ldc_params(vx_context context, TIOVX
 
     /* LDC Configuration */
     tivx_vpac_ldc_params_init(&obj->params);
+    obj->params.init_x = obj->init_x;
+    obj->params.init_y = obj->init_y;
     obj->params.luma_interpolation_type = 1;
     obj->params.dcc_camera_id = sensorObj->sensorParams.dccId;
 
