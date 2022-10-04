@@ -169,6 +169,8 @@ static vx_status app_init(AppObj *obj)
         ldcObj->output0.width = OUTPUT_WIDTH;
         ldcObj->output0.height = OUTPUT_HEIGHT;
 
+        ldcObj->init_x = 0;
+        ldcObj->init_y = 0;
         ldcObj->table_width  = LDC_TABLE_WIDTH;
         ldcObj->table_height = LDC_TABLE_HEIGHT;
         ldcObj->ds_factor    = LDC_DS_FACTOR;
