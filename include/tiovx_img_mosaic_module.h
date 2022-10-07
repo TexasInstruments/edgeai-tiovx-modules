@@ -73,6 +73,7 @@
  */
 
 #include "tiovx_modules_common.h"
+#include <TI/tivx_img_proc.h>
 
 /** \brief HW Mosaic Module Data Structure
  *

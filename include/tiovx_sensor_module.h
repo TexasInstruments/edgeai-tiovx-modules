@@ -73,6 +73,7 @@
  */
 
 #include "tiovx_modules_common.h"
+#include <utils/iss/include/app_iss.h>
 
 /** \brief Use case config value corresponding to ISS_SENSOR_FEATURE_CFG_UC0
  *
