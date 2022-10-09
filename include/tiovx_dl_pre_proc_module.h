@@ -64,6 +64,10 @@
 
 #include "tiovx_modules_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     vx_node node;
     vx_user_data_object config;
@@ -94,5 +98,9 @@ vx_status tiovx_dl_pre_proc_module_release_buffers(TIOVXDLPreProcModuleObj *obj)
 
 vx_status tiovx_dl_pre_proc_module_add_write_output_node(vx_graph graph, TIOVXDLPreProcModuleObj *obj);
 vx_status tiovx_dl_pre_proc_module_send_write_output_cmd(TIOVXDLPreProcModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

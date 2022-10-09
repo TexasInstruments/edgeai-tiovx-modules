@@ -75,6 +75,10 @@
 #include "tiovx_modules_common.h"
 #include <utils/iss/include/app_iss.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** \brief Use case config value corresponding to ISS_SENSOR_FEATURE_CFG_UC0
  *
  */
@@ -188,5 +192,9 @@ vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName);
 void tiovx_deinit_sensor(SensorObj *sensorObj);
 
 /* @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__APP_SENSOR_MODULE
