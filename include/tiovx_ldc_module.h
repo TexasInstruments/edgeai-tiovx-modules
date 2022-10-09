@@ -75,6 +75,10 @@
 #include "tiovx_modules_common.h"
 #include "tiovx_sensor_module.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** \brief Default LDC block width.  Can be modified as needed for use case
  *
  */
@@ -142,13 +146,13 @@ typedef struct {
     /*! LDC mesh image */
     vx_image mesh_img;
 
-    /*! LDC table width, set to \ref LDC_TABLE_WIDTH  */
+    /*! LDC table width  */
     vx_uint32 table_width;
 
-    /*! LDC table height, set to \ref LDC_TABLE_HEIGHT  */
+    /*! LDC table height  */
     vx_uint32 table_height;
 
-    /*! LDC downscale factor, set to \ref LDC_DS_FACTOR  */
+    /*! LDC downscale factor  */
     vx_uint32 ds_factor;
 
     /*! LDC Output starting x-coordinate */
@@ -278,5 +282,9 @@ vx_status tiovx_ldc_module_add_write_output_node(vx_graph graph, TIOVXLDCModuleO
 vx_status tiovx_ldc_module_send_write_output_cmd(TIOVXLDCModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
 
 /* @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

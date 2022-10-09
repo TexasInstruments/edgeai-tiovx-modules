@@ -79,6 +79,10 @@
 #include <float.h>
 #include <math.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#define TIOVX_MODULE_DEBUG
 
 #define TIOVX_MODULES_MAX_FILE_PATH_SIZE  (512u)
@@ -161,5 +165,9 @@ typedef struct {
     vx_int32 bufq_depth;
 
 } DstObj;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_TIOVX_MODULES_COMMON
