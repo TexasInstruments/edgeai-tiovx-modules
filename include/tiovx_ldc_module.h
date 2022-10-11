@@ -79,21 +79,6 @@
 extern "C" {
 #endif
 
-/** \brief Default LDC block width.  Can be modified as needed for use case
- *
- */
-#define LDC_BLOCK_WIDTH     (64)
-
-/** \brief Default LDC block height.  Can be modified as needed for use case
- *
- */
-#define LDC_BLOCK_HEIGHT    (32)
-
-/** \brief Default LDC pixel padding.  Can be modified as needed for use case
- *
- */
-#define LDC_PIXEL_PAD       (1)
-
 /** \brief LDC Mode enumeration
  *
  * Contains different enumeration option for LDC operation
@@ -154,6 +139,15 @@ typedef struct {
 
     /*! LDC downscale factor  */
     vx_uint32 ds_factor;
+
+    /*! LDC block width */
+    vx_uint32 out_block_width;
+
+    /*! LDC block height */
+    vx_uint32 out_block_height;
+
+    /*! LDC pixel padding */
+    vx_uint32 pixel_pad;
 
     /*! LDC Output starting x-coordinate */
     vx_uint32 init_x;
