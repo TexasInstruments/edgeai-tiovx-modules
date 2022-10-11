@@ -190,9 +190,9 @@ static vx_status tiovx_ldc_module_configure_region_params(vx_context context, TI
     vx_status status = VX_SUCCESS;
 
     /* Block Size parameters */
-    obj->region_params.out_block_width  = LDC_BLOCK_WIDTH;
-    obj->region_params.out_block_height = LDC_BLOCK_HEIGHT;
-    obj->region_params.pixel_pad        = LDC_PIXEL_PAD;
+    obj->region_params.out_block_width  = obj->out_block_width;
+    obj->region_params.out_block_height = obj->out_block_height;
+    obj->region_params.pixel_pad        = obj->pixel_pad;
 
     obj->region_config = vxCreateUserDataObject(context, "tivx_vpac_ldc_region_params_t", sizeof(tivx_vpac_ldc_region_params_t),  NULL);
     status = vxGetStatus((vx_reference)obj->region_config);
