@@ -104,6 +104,7 @@ vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName)
     }
     else
     {
+        TIOVX_MODULE_ERROR("[SENSOR-MODULE] Invalid sensor name\n");
         status = VX_FAILURE;
     }
 
