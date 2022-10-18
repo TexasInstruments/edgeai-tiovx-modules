@@ -35,3 +35,10 @@ build_lib(${PROJECT_NAME}  # Named argument: library name
           ${SRC_FILES})
 
 add_subdirectory(test)
+
+set(SRC_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/opt/${PROJECT_NAME})
+
+add_custom_target(install_src
+                  COMMAND
+                  cp -r ${CMAKE_CURRENT_SOURCE_DIR} ${DESTDIR}/opt/${PROJECT_NAME}
+                  )
