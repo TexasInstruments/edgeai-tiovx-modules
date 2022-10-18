@@ -35,3 +35,15 @@ build_lib(${PROJECT_NAME}  # Named argument: library name
           ${SRC_FILES})
 
 add_subdirectory(test)
+
+option(INSTALL_SRC  "Install src under /opt" OFF)
+
+if (INSTALL_SRC)
+    install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/
+            DESTINATION /opt/${PROJECT_NAME}
+            PATTERN     "*/build*" EXCLUDE
+            PATTERN     "*/lib*"   EXCLUDE
+            PATTERN     "*/bin*"   EXCLUDE
+            PATTERN     "*/data*"  EXCLUDE
+            PATTERN     "*/.git*"  EXCLUDE)
+endif()
