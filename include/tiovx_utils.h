@@ -86,6 +86,10 @@
 
 #include "tiovx_modules_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#define APP_DEBUG
 #define APP_USE_FILEIO
 
@@ -180,5 +184,9 @@ vx_status resetImage(vx_image img, int32_t value);
 
 vx_status readRawImage(char* file_name, tivx_raw_image img);
 vx_status writeRawImage(char* file_name, tivx_raw_image img);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
