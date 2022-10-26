@@ -64,6 +64,8 @@
 
 #include <itt_server.h>
 #include <itt_srvr_remote.h>
+#include <app_iss.h>
+#include "tiovx_itt_server_module.h"
 
 static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVISSModuleObj *obj)
 {
@@ -621,6 +623,14 @@ vx_status tiovx_viss_module_init(vx_context context, TIOVXVISSModuleObj *obj, Se
 {
     vx_status status = VX_SUCCESS;
 
+    obj->context = context;
+
+    if(obj->context == NULL)
+    {
+        TIOVX_MODULE_ERROR("Context Object handle is NULL!");
+        status = VX_FAILURE;
+    }
+
     obj->sensorObj = sensorObj;
 
     if(obj->sensorObj == NULL)
@@ -650,23 +660,8 @@ vx_status tiovx_viss_module_init(vx_context context, TIOVXVISSModuleObj *obj, Se
     }
 
     if((vx_status)VX_SUCCESS == status)
-    {   
-        /* Initiates ITT server thread on A72/Linux */
-        status = itt_server_init((void*)obj, NULL, NULL);
-        if(status != 0)
-        {
-            printf("Warning : Failed to initialize ITT server. Live tuning will not work \n");
-        }
-    }
-
-    if((vx_status)VX_SUCCESS == status)
     {
-        /* Initiates remote server for 2A control. Ported from RTOS */
-        status = IttRemoteServer_Init();
-        if(status!=0)
-        {
-            printf("Warning: Failed to create remote ITT server failed. Live tuning will not work !!!\n");
-        }
+        status = tiovx_itt_register_object(obj, VISS);
     }
 
     return (status);
@@ -1025,6 +1020,8 @@ vx_status tiovx_viss_module_create(vx_graph graph, TIOVXVISSModuleObj *obj, vx_o
     {
         status = tiovx_viss_module_add_write_output_node(graph, obj);
     }
+
+    status = tiovx_itt_server_module_init();
 
     return status;
 }

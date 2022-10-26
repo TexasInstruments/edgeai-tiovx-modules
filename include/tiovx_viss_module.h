@@ -178,6 +178,9 @@ typedef struct {
     /*! Name of VISS module */
     vx_char obj_name[TIOVX_MODULES_MAX_OBJ_NAME_SIZE];
 
+    /* OpenVX context for DCC update */
+    vx_context context;
+
 }TIOVXVISSModuleObj;
 
 /** \brief VISS module init helper function

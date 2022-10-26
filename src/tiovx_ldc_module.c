@@ -447,6 +447,14 @@ vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj, Sens
 {
     vx_status status = VX_SUCCESS;
 
+    obj->context = context;
+
+    if(obj->context == NULL)
+    {
+        TIOVX_MODULE_ERROR("Context Object handle is NULL!");
+        status = VX_FAILURE;
+    }
+
     obj->sensorObj = sensorObj;
 
     if(obj->sensorObj == NULL)
@@ -494,6 +502,11 @@ vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj, Sens
     if((vx_status)VX_SUCCESS == status)
     {
         status = tiovx_ldc_module_create_outputs(context, obj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_itt_register_object(obj, LDC);
     }
 
     return (status);
@@ -677,6 +690,8 @@ vx_status tiovx_ldc_module_create(vx_graph graph, TIOVXLDCModuleObj *obj, vx_obj
     {
         status = tiovx_ldc_module_add_write_output_node(graph, obj);
     }
+
+    status = tiovx_itt_server_module_init();
 
     return status;
 }
