@@ -60,7 +60,7 @@
  *
  */
 
-#include "app_common.h"
+#include <tiovx_utils.h>
 
 static vx_uint32 get_tensor_bitdepth(vx_enum tensor_type);
 
@@ -1572,6 +1572,67 @@ vx_status writeImage(char* file_name, vx_image img)
         }
 
         fclose(fp);
+    }
+
+    return(status);
+}
+
+vx_status resetImage(vx_image img, int32_t value)
+{
+    vx_status status;
+
+    status = vxGetStatus((vx_reference)img);
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        vx_rectangle_t rect;
+        vx_imagepatch_addressing_t image_addr;
+        vx_map_id map_id;
+        void * data_ptr;
+        vx_uint32  img_width;
+        vx_uint32  img_height;
+        vx_size    num_planes;
+        vx_uint32  plane;
+        vx_df_image img_format;
+        vx_int32  j;
+
+        vxQueryImage(img, VX_IMAGE_WIDTH, &img_width, sizeof(vx_uint32));
+        vxQueryImage(img, VX_IMAGE_HEIGHT, &img_height, sizeof(vx_uint32));
+        vxQueryImage(img, VX_IMAGE_PLANES, &num_planes, sizeof(vx_size));
+        vxQueryImage(img, VX_IMAGE_FORMAT, &img_format, sizeof(vx_df_image));
+
+        for (plane = 0; plane < num_planes; plane++)
+        {
+            rect.start_x = 0;
+            rect.start_y = 0;
+            rect.end_x = img_width;
+            rect.end_y = img_height;
+            status = vxMapImagePatch(img,
+                                    &rect,
+                                    plane,
+                                    &map_id,
+                                    &image_addr,
+                                    &data_ptr,
+                                    VX_WRITE_ONLY,
+                                    VX_MEMORY_TYPE_HOST,
+                                    VX_NOGAP_X);
+
+            APP_PRINTF("image_addr.dim_x = %d\n ", image_addr.dim_x);
+            APP_PRINTF("image_addr.dim_y = %d\n ", image_addr.dim_y);
+            APP_PRINTF("image_addr.step_x = %d\n ", image_addr.step_x);
+            APP_PRINTF("image_addr.step_y = %d\n ", image_addr.step_y);
+            APP_PRINTF("image_addr.stride_y = %d\n ", image_addr.stride_y);
+            APP_PRINTF("image_addr.stride_x = %d\n ", image_addr.stride_x);
+            APP_PRINTF("\n");
+
+            for (j = 0; j < (image_addr.dim_y/image_addr.step_y); j++)
+            {
+                memset(data_ptr, value, image_addr.dim_x * (image_addr.stride_x / image_addr.step_x));
+                data_ptr += image_addr.stride_y;
+            }
+
+            vxUnmapImagePatch(img, map_id);
+        }
     }
 
     return(status);

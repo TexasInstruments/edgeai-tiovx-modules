@@ -75,6 +75,10 @@
 #include "tiovx_modules_common.h"
 #include "tiovx_sensor_module.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define TIOVX_VISS_MODULE_OUTPUT_NA (0)
 #define TIOVX_VISS_MODULE_OUTPUT_EN (1)
 
@@ -251,5 +255,9 @@ vx_status tiovx_viss_module_add_write_output_node(vx_graph graph, TIOVXVISSModul
 vx_status tiovx_viss_module_send_write_output_cmd(TIOVXVISSModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
 
 /* @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

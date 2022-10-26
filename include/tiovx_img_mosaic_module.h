@@ -73,6 +73,11 @@
  */
 
 #include "tiovx_modules_common.h"
+#include <TI/tivx_img_proc.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** \brief HW Mosaic Module Data Structure
  *
@@ -138,5 +143,9 @@ vx_status tiovx_img_mosaic_module_release_buffers(TIOVXImgMosaicModuleObj *obj);
 
 vx_status tiovx_img_mosaic_module_add_write_output_node(vx_graph graph, TIOVXImgMosaicModuleObj *obj);
 vx_status tiovx_img_mosaic_module_send_write_output_cmd(TIOVXImgMosaicModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

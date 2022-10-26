@@ -64,6 +64,10 @@
 
 #include "tiovx_modules_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     vx_node node;
 
@@ -137,5 +141,9 @@ vx_status tiovx_dof_viz_module_create(vx_graph graph, TIOVXDofVizModuleObj *obj,
  *
  */
 vx_status tiovx_dof_viz_module_release_buffers(TIOVXDofVizModuleObj *obj);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

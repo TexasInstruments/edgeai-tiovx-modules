@@ -75,35 +75,9 @@
 #include "tiovx_modules_common.h"
 #include "tiovx_sensor_module.h"
 
-/** \brief Default LDC table width.  Can be modified as needed for use case
- *
- */
-#define LDC_TABLE_WIDTH     (1920)
-
-/** \brief Default LDC table width.  Can be modified as needed for use case
- *
- */
-#define LDC_TABLE_HEIGHT    (1080)
-
-/** \brief Default LDC downscale factor.  Can be modified as needed for use case
- *
- */
-#define LDC_DS_FACTOR       (2)
-
-/** \brief Default LDC block width.  Can be modified as needed for use case
- *
- */
-#define LDC_BLOCK_WIDTH     (64)
-
-/** \brief Default LDC block height.  Can be modified as needed for use case
- *
- */
-#define LDC_BLOCK_HEIGHT    (32)
-
-/** \brief Default LDC pixel padding.  Can be modified as needed for use case
- *
- */
-#define LDC_PIXEL_PAD       (1)
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** \brief LDC Mode enumeration
  *
@@ -157,20 +131,38 @@ typedef struct {
     /*! LDC mesh image */
     vx_image mesh_img;
 
-    /*! LDC table width, set to \ref LDC_TABLE_WIDTH  */
+    /*! LDC table width  */
     vx_uint32 table_width;
 
-    /*! LDC table height, set to \ref LDC_TABLE_HEIGHT  */
+    /*! LDC table height  */
     vx_uint32 table_height;
 
-    /*! LDC downscale factor, set to \ref LDC_DS_FACTOR  */
+    /*! LDC downscale factor  */
     vx_uint32 ds_factor;
+
+    /*! LDC block width */
+    vx_uint32 out_block_width;
+
+    /*! LDC block height */
+    vx_uint32 out_block_height;
+
+    /*! LDC pixel padding */
+    vx_uint32 pixel_pad;
+
+    /*! LDC Output starting x-coordinate */
+    vx_uint32 init_x;
+
+    /*! LDC Output starting y-coordinate */
+    vx_uint32 init_y;
 
     /*! User data object for DCC config parameter, used as node parameter of LDC node */
     vx_user_data_object dcc_config;
 
     /*! DCC config file path for LDC */
     vx_char dcc_config_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
+
+    /*! LUT file mesh image based LDC config */
+    vx_char lut_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
 
     /*! LDC input Image Object  */
     ImgObj input;
@@ -284,5 +276,9 @@ vx_status tiovx_ldc_module_add_write_output_node(vx_graph graph, TIOVXLDCModuleO
 vx_status tiovx_ldc_module_send_write_output_cmd(TIOVXLDCModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
 
 /* @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

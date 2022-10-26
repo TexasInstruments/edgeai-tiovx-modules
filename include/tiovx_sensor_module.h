@@ -73,6 +73,11 @@
  */
 
 #include "tiovx_modules_common.h"
+#include <utils/iss/include/app_iss.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** \brief Use case config value corresponding to ISS_SENSOR_FEATURE_CFG_UC0
  *
@@ -101,10 +106,15 @@ typedef struct {
     /*! DCC configuration data structure */
     vx_user_data_object dcc_config;
 
-    /*! Array of strings of available sensor names */
-    char availableSensorNames[ISS_SENSORS_MAX_SUPPORTED_SENSOR][ISS_SENSORS_MAX_NAME];
-
-    /*! String of sensor name being used */
+    /*! String of sensor name being used, Below are the supported sensors
+     *
+     * SENSOR_SONY_IMX390_UB953_D3
+     * SENSOR_ONSEMI_AR0820_UB953_LI
+     * SENSOR_ONSEMI_AR0233_UB953_MARS
+     * SENSOR_SONY_IMX219_RPI
+     * SENSOR_OV2312_UB953_LI
+     *
+     * */
     vx_char sensor_name[ISS_SENSORS_MAX_NAME];
 
     /*! Number of sensors detected by sensor framework */
@@ -187,5 +197,9 @@ vx_status tiovx_init_sensor(SensorObj *sensorObj, char *objName);
 void tiovx_deinit_sensor(SensorObj *sensorObj);
 
 /* @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__APP_SENSOR_MODULE

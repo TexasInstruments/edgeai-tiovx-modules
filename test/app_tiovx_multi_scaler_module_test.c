@@ -60,15 +60,15 @@
  *
  */
 
-#include "app_common.h"
+#include <tiovx_utils.h>
 #include "tiovx_multi_scaler_module.h"
 
-#define APP_BUFQ_DEPTH   (2)
-#define APP_NUM_CH       (2)
+#define APP_BUFQ_DEPTH   (1)
+#define APP_NUM_CH       (1)
 #define APP_NUM_OUTPUTS  (2)
 
-#define INPUT_WIDTH  (1920)
-#define INPUT_HEIGHT (1080)
+#define INPUT_WIDTH  (640)
+#define INPUT_HEIGHT (480)
 
 typedef struct {
 
@@ -156,8 +156,8 @@ static vx_status app_init(AppObj *obj)
 
         for(out = 0; out < APP_NUM_OUTPUTS; out++)
         {
-            scalerObj->output[out].width = INPUT_WIDTH - (out * 10);
-            scalerObj->output[out].height = INPUT_HEIGHT - (out * 10);
+            scalerObj->output[out].width = INPUT_WIDTH >> (out + 1);
+            scalerObj->output[out].height = INPUT_HEIGHT >> (out + 1);
         }
 
         /* Initialize modules */
@@ -233,7 +233,7 @@ static vx_status app_create_graph(AppObj *obj)
     if(status == VX_SUCCESS)
     {
         status = vxSetGraphScheduleConfig(obj->graph,
-                    VX_GRAPH_SCHEDULE_MODE_QUEUE_AUTO,
+                    VX_GRAPH_SCHEDULE_MODE_QUEUE_MANUAL,
                     graph_parameter_index,
                     graph_parameters_queue_params_list);
     }
@@ -266,8 +266,15 @@ static vx_status app_run_graph(AppObj *obj)
 {
     vx_status status = VX_SUCCESS;
 
+    char * input_filename = "/opt/edgeai-tiovx-modules/data/input/baboon_640x480_nv12.yuv";
+    char * output0_filename = "/opt/edgeai-tiovx-modules/data/output/baboon_320x240_nv12_msc_out0.yuv";
+    char * output1_filename = "/opt/edgeai-tiovx-modules/data/output/baboon_160x120_nv12_msc_out1.yuv";
+
+    vx_image input_o, output0_o, output1_o;
+
     TIOVXMultiScalerModuleObj *scalerObj = &obj->scalerObj;
     vx_int32 bufq;
+    uint32_t num_refs;
 
     void *inAddr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     void *out1Addr[APP_BUFQ_DEPTH][TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
@@ -287,7 +294,30 @@ static vx_status app_run_graph(AppObj *obj)
     assign_image_buffers(&scalerObj->output[0], out1Addr[bufq], out1Sizes[bufq], bufq);
     assign_image_buffers(&scalerObj->output[1], out2Addr[bufq], out2Sizes[bufq], bufq);
 
-    //status = vxProcessGraph(obj->graph);
+    readImage(input_filename, scalerObj->input.image_handle[0]);
+
+    APP_PRINTF("Enqueueing input buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, 0, (vx_reference*)&scalerObj->input.image_handle[0], 1);
+    APP_PRINTF("Enqueueing output buffers!\n");
+    vxGraphParameterEnqueueReadyRef(obj->graph, 1, (vx_reference*)&scalerObj->output[0].image_handle[0], 1);
+    vxGraphParameterEnqueueReadyRef(obj->graph, 2, (vx_reference*)&scalerObj->output[1].image_handle[0], 1);
+
+    APP_PRINTF("Processing!\n");
+    status = vxScheduleGraph(obj->graph);
+    if((vx_status)VX_SUCCESS != status) {
+      APP_PRINTF("Schedule Graph failed: %d!\n", status);
+    }
+    status = vxWaitGraph(obj->graph);
+    if((vx_status)VX_SUCCESS != status) {
+      APP_PRINTF("Wait Graph failed: %d!\n", status);
+    }
+
+    vxGraphParameterDequeueDoneRef(obj->graph, 0, (vx_reference*)&input_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, 1, (vx_reference*)&output0_o, 1, &num_refs);
+    vxGraphParameterDequeueDoneRef(obj->graph, 2, (vx_reference*)&output1_o, 1, &num_refs);
+
+    writeImage(output0_filename, scalerObj->output[0].image_handle[0]);
+    writeImage(output1_filename, scalerObj->output[1].image_handle[0]);
 
     release_image_buffers(&scalerObj->input, inAddr[bufq], inSizes[bufq], bufq);
     release_image_buffers(&scalerObj->output[0], out1Addr[bufq], out1Sizes[bufq], bufq);

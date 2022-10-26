@@ -60,7 +60,7 @@
  *
  */
 
-#include "app_common.h"
+#include <tiovx_utils.h>
 #include "tiovx_sensor_module.h"
 #include "tiovx_ldc_module.h"
 
@@ -71,6 +71,14 @@
 
 #define OUTPUT_WIDTH  (1920)
 #define OUTPUT_HEIGHT (1080)
+
+#define LDC_TABLE_WIDTH     (1920)
+#define LDC_TABLE_HEIGHT    (1080)
+#define LDC_DS_FACTOR       (2)
+#define LDC_BLOCK_WIDTH     (64)
+#define LDC_BLOCK_HEIGHT    (32)
+#define LDC_PIXEL_PAD       (1)
+
 
 typedef struct {
 
@@ -149,8 +157,9 @@ static vx_status app_init(AppObj *obj)
         tiovx_init_sensor(sensorObj,"SENSOR_SONY_IMX390_UB953_D3");
 
         snprintf(ldcObj->dcc_config_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/imaging/imx390/dcc_ldc_wdr.bin");
+        snprintf(ldcObj->lut_file_path, TIVX_FILEIO_FILE_PATH_LENGTH, "%s", "/opt/edgeai-tiovx-modules/data/input/imx390_ldc_lut_1920x1080.bin");
 
-        ldcObj->ldc_mode = TIOVX_MODULE_LDC_OP_MODE_DCC_DATA;
+        ldcObj->ldc_mode = TIOVX_MODULE_LDC_OP_MODE_DCC_DATA; //TIOVX_MODULE_LDC_OP_MODE_MESH_IMAGE
         ldcObj->en_out_image_write = 0;
         ldcObj->en_output1 = 0;
 
@@ -163,6 +172,15 @@ static vx_status app_init(AppObj *obj)
         ldcObj->output0.color_format = VX_DF_IMAGE_NV12;
         ldcObj->output0.width = OUTPUT_WIDTH;
         ldcObj->output0.height = OUTPUT_HEIGHT;
+
+        ldcObj->init_x = 0;
+        ldcObj->init_y = 0;
+        ldcObj->table_width = LDC_TABLE_WIDTH;
+        ldcObj->table_height = LDC_TABLE_HEIGHT;
+        ldcObj->ds_factor = LDC_DS_FACTOR;
+        ldcObj->out_block_width = LDC_BLOCK_WIDTH;
+        ldcObj->out_block_height = LDC_BLOCK_HEIGHT;
+        ldcObj->pixel_pad = LDC_PIXEL_PAD;
 
         /* Initialize modules */
         status = tiovx_ldc_module_init(obj->context, ldcObj, sensorObj);

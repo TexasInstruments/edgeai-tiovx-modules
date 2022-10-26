@@ -61,9 +61,7 @@
  */
 
 #include "tiovx_ldc_module.h"
-#include "tiovx_ldc_module_lut_1920x1080.h"
-
-static uint8_t  g_tiovx_ldc_module_lut[] = LDC_LUT_1920_1080;
+#include <tiovx_utils.h>
 
 static vx_status tiovx_ldc_module_configure_dcc_params(vx_context context, TIOVXLDCModuleObj *obj)
 {
@@ -129,11 +127,10 @@ static vx_status tiovx_ldc_module_configure_mesh_params(vx_context context, TIOV
     vx_status status = VX_SUCCESS;
 
     vx_uint32 table_width_ds, table_height_ds;
-    vx_imagepatch_addressing_t image_addr;
-    vx_rectangle_t rect;
 
     table_width_ds = (((obj->table_width / (1 << obj->ds_factor)) + 1u) + 15u) & (~15u);
     table_height_ds = ((obj->table_height / (1 << obj->ds_factor)) + 1u);
+
 
     /* Mesh Image */
     obj->mesh_img = vxCreateImage(context, table_width_ds, table_height_ds, VX_DF_IMAGE_U32);
@@ -141,23 +138,9 @@ static vx_status tiovx_ldc_module_configure_mesh_params(vx_context context, TIOV
 
     if((vx_status)VX_SUCCESS == status)
     {
-        /* Copy Mesh table */
-        rect.start_x = 0;
-        rect.start_y = 0;
-        rect.end_x = table_width_ds;
-        rect.end_y = table_height_ds;
+        /* Read LUT file */
+        status = readImage(obj->lut_file_path, obj->mesh_img);
 
-        image_addr.dim_x = table_width_ds;
-        image_addr.dim_y = table_height_ds;
-        image_addr.stride_x = 4u;
-        image_addr.stride_y = table_width_ds * 4u;
-
-        status = vxCopyImagePatch(obj->mesh_img,
-                                &rect, 0,
-                                &image_addr,
-                                g_tiovx_ldc_module_lut,
-                                VX_WRITE_ONLY,
-                                VX_MEMORY_TYPE_HOST);
         if (status == VX_SUCCESS)
         {
             /* Mesh Parameters */
@@ -207,9 +190,9 @@ static vx_status tiovx_ldc_module_configure_region_params(vx_context context, TI
     vx_status status = VX_SUCCESS;
 
     /* Block Size parameters */
-    obj->region_params.out_block_width  = LDC_BLOCK_WIDTH;
-    obj->region_params.out_block_height = LDC_BLOCK_HEIGHT;
-    obj->region_params.pixel_pad        = LDC_PIXEL_PAD;
+    obj->region_params.out_block_width  = obj->out_block_width;
+    obj->region_params.out_block_height = obj->out_block_height;
+    obj->region_params.pixel_pad        = obj->pixel_pad;
 
     obj->region_config = vxCreateUserDataObject(context, "tivx_vpac_ldc_region_params_t", sizeof(tivx_vpac_ldc_region_params_t),  NULL);
     status = vxGetStatus((vx_reference)obj->region_config);
@@ -242,6 +225,8 @@ static vx_status tiovx_ldc_module_configure_ldc_params(vx_context context, TIOVX
 
     /* LDC Configuration */
     tivx_vpac_ldc_params_init(&obj->params);
+    obj->params.init_x = obj->init_x;
+    obj->params.init_y = obj->init_y;
     obj->params.luma_interpolation_type = 1;
     obj->params.dcc_camera_id = sensorObj->sensorParams.dccId;
 
@@ -480,10 +465,6 @@ vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj, Sens
     {
         if((vx_status)VX_SUCCESS == status)
         {
-            obj->table_width  = LDC_TABLE_WIDTH;
-            obj->table_height = LDC_TABLE_HEIGHT;
-            obj->ds_factor    = LDC_DS_FACTOR;
-
             status = tiovx_ldc_module_configure_dcc_params(context, obj);
         }
     }

@@ -65,14 +65,9 @@
 #include <TI/tivx.h>
 #include <TI/tivx_task.h>
 #include <TI/tivx_target_kernel.h>
-#include "tivx_kernels_host_utils.h"
 #include <TI/tivx_img_proc.h>
 
 #include <TI/j7_tidl.h>
-#include <tivx_utils_file_rd_wr.h>
-#include <tivx_utils_graph_perf.h>
-#include <utils/iss/include/app_iss.h>
-#include <TI/tivx_img_proc.h>
 #include <TI/tivx_fileio.h>
 
 #include <stdio.h>
@@ -84,6 +79,10 @@
 #include <float.h>
 #include <math.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#define TIOVX_MODULE_DEBUG
 
 #define TIOVX_MODULES_MAX_FILE_PATH_SIZE  (512u)
@@ -92,7 +91,7 @@
 #define TIOVX_MODULES_MAX_TENSOR_DIMS     (4u)
 #define TIOVX_MODULES_MAX_TENSORS         (8u)
 #define TIOVX_MODULES_MAX_PARAMS          (16u)
-#define TIOVX_MODULES_MAX_REF_HANDLES     (8u)
+#define TIOVX_MODULES_MAX_REF_HANDLES     (16u)
 
 #ifdef TIOVX_MODULE_DEBUG
 #define TIOVX_MODULE_PRINTF(f_, ...) printf("[DEBUG] %d: %s: "f_, __LINE__, __func__, ##__VA_ARGS__)
@@ -166,5 +165,9 @@ typedef struct {
     vx_int32 bufq_depth;
 
 } DstObj;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_TIOVX_MODULES_COMMON

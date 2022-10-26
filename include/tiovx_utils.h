@@ -86,6 +86,10 @@
 
 #include "tiovx_modules_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //#define APP_DEBUG
 #define APP_USE_FILEIO
 
@@ -176,8 +180,13 @@ vx_status create_tensor_mask(vx_tensor tensor_o, vx_int32 num_classes);
 
 vx_status readImage(char* file_name, vx_image img);
 vx_status writeImage(char* file_name, vx_image img);
+vx_status resetImage(vx_image img, int32_t value);
 
 vx_status readRawImage(char* file_name, tivx_raw_image img);
 vx_status writeRawImage(char* file_name, tivx_raw_image img);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

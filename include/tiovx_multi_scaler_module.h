@@ -74,6 +74,10 @@
 
 #include "tiovx_modules_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** \brief Maximum amount of values allowed from scaler node
  *
  */
@@ -228,5 +232,9 @@ void tiovx_multi_scaler_module_set_coeff(tivx_vpac_msc_coefficients_t *coeff,  u
 vx_status tiovx_multi_scaler_module_update_filter_coeffs(TIOVXMultiScalerModuleObj *obj);
 
 /* @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
