@@ -92,6 +92,7 @@ extern "C" {
 #define TIOVX_MODULES_MAX_TENSORS         (8u)
 #define TIOVX_MODULES_MAX_PARAMS          (16u)
 #define TIOVX_MODULES_MAX_REF_HANDLES     (16u)
+#define TIOVX_MODULES_MAX_FNAME           (256u)
 
 #ifdef TIOVX_MODULE_DEBUG
 #define TIOVX_MODULE_PRINTF(f_, ...) printf("[DEBUG] %d: %s: "f_, __LINE__, __func__, ##__VA_ARGS__)
