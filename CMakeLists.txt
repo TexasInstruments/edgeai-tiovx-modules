@@ -13,7 +13,8 @@ set(SRC_FILES
     src/tiovx_viss_module.c
     src/tiovx_ldc_module.c
     src/tiovx_pyramid_module.c
-    src/tiovx_utils.c)
+    src/tiovx_utils.c
+    src/tiovx_itt_server_module.c)
 
 if ("${TARGET_SOC}" STREQUAL "J721E" OR "${TARGET_SOC}" STREQUAL "J721S2")
     list(APPEND

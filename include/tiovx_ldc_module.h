@@ -200,6 +200,9 @@ typedef struct {
     /*! Output file path for LDC node output */
     vx_char output_file_path[TIVX_FILEIO_FILE_PATH_LENGTH];
 
+    /* Pointer to context for DCC update */
+    vx_context context;
+
 }TIOVXLDCModuleObj;
 
 /** \brief LDC module init helper function
