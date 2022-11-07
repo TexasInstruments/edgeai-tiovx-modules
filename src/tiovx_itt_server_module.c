@@ -73,7 +73,6 @@ int save_debug_images(TIOVXITTServerModuleObj *obj)
     static int file_index = 0;
     char raw_image_fname[TIOVX_MODULES_MAX_FNAME];
     char yuv_image_fname[TIOVX_MODULES_MAX_FNAME];
-    char h3a_image_fname[TIOVX_MODULES_MAX_FNAME];
     char failsafe_test_data_path[3] = "./";
     char * test_data_path = app_get_test_file_path();
     struct stat s;

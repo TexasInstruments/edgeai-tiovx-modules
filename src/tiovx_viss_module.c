@@ -61,10 +61,6 @@
  */
 
 #include "tiovx_viss_module.h"
-
-#include <itt_server.h>
-#include <itt_srvr_remote.h>
-#include <app_iss.h>
 #include "tiovx_itt_server_module.h"
 
 static vx_status tiovx_viss_module_configure_params(vx_context context, TIOVXVISSModuleObj *obj)
