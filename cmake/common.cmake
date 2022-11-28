@@ -93,10 +93,12 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${TARGET_FS}/usr/include/processor_sdk/vision_apps/kernels/img_proc/include
                     ${TARGET_FS}/usr/include/processor_sdk/vision_apps/kernels/fileio/include
                     ${TARGET_FS}/usr/include/processor_sdk/vision_apps/kernels/stereo/include
+                    ${TARGET_FS}/usr/include/edgeai-tiovx-kernels
                    )
 
 set(SYSTEM_LINK_LIBS
     tivision_apps
+    edgeai-tiovx-kernels
     )
 
 set(COMMON_LINK_LIBS

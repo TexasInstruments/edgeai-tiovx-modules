@@ -73,7 +73,7 @@ typedef struct {
     vx_kernel kernel;
 
     vx_user_data_object config;
-    tivxDLColorBlendParams params;
+    tivxDLColorBlendArmv8Params params;
 
     ImgObj img_input;
     TensorObj tensor_input;

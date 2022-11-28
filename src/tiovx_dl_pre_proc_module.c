@@ -68,7 +68,7 @@ static vx_status tiovx_dl_pre_proc_module_create_config(vx_context context, TIOV
     tivxDLPreProcParams *params;
     vx_map_id map_id;
 
-    obj->config = vxCreateUserDataObject(context, "tivxDLPreProcParams", sizeof(tivxDLPreProcParams), NULL );
+    obj->config = vxCreateUserDataObject(context, "tivxDLPreProcArmv8Params", sizeof(tivxDLPreProcArmv8Params), NULL );
     status = vxGetStatus((vx_reference)obj->config);
 
     if (VX_SUCCESS == status)
@@ -78,7 +78,7 @@ static vx_status tiovx_dl_pre_proc_module_create_config(vx_context context, TIOV
         vxMapUserDataObject(obj->config, 0, sizeof(tivxDLPreProcParams), &map_id,
                         (void **)&params, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST, 0);
 
-        memcpy(params, &obj->params, sizeof(tivxDLPreProcParams));
+        memcpy(params, &obj->params, sizeof(tivxDLPreProcArmv8Params));
 
         vxUnmapUserDataObject(obj->config, map_id);
     }
@@ -361,7 +361,7 @@ vx_status tiovx_dl_pre_proc_module_create(vx_graph graph, TIOVXDLPreProcModuleOb
         output = NULL;
     }
 
-    obj->node = tivxDLPreProcNode(graph, obj->config, input, output);
+    obj->node = tivxDLPreProcArmv8Node(graph, obj->config, input, output);
     status = vxGetStatus((vx_reference)obj->node);
 
     if((vx_status)VX_SUCCESS == status)

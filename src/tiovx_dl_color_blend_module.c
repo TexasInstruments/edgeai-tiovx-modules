@@ -65,20 +65,20 @@ static vx_status tiovx_dl_color_blend_module_create_config(vx_context context, T
 {
     vx_status status = VX_SUCCESS;
 
-    tivxDLColorBlendParams *params;
+    tivxDLColorBlendArmv8Params *params;
     vx_map_id map_id;
 
-    obj->config = vxCreateUserDataObject(context, "tivxDLColorBlendParams", sizeof(tivxDLColorBlendParams), NULL );
+    obj->config = vxCreateUserDataObject(context, "tivxDLColorBlendArmv8Params", sizeof(tivxDLColorBlendArmv8Params), NULL );
     status = vxGetStatus((vx_reference)obj->config);
 
     if (VX_SUCCESS == status)
     {
         vxSetReferenceName((vx_reference)obj->config, "dl_color_blend_config");
 
-        vxMapUserDataObject(obj->config, 0, sizeof(tivxDLColorBlendParams), &map_id,
+        vxMapUserDataObject(obj->config, 0, sizeof(tivxDLColorBlendArmv8Params), &map_id,
                         (void **)&params, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST, 0);
 
-        memcpy(params, &obj->params, sizeof(tivxDLColorBlendParams));
+        memcpy(params, &obj->params, sizeof(tivxDLColorBlendArmv8Params));
 
         vxUnmapUserDataObject(obj->config, map_id);
     }
@@ -442,7 +442,7 @@ vx_status tiovx_dl_color_blend_module_create(vx_graph graph, TIOVXDLColorBlendMo
         img_output = NULL;
     }
 
-    obj->node = tivxDLColorBlendNode(graph, obj->config, img_input, tensor_input, img_output);
+    obj->node = tivxDLColorBlendArmv8Node(graph, obj->config, img_input, tensor_input, img_output);
     status = vxGetStatus((vx_reference)obj->node);
 
     if((vx_status)VX_SUCCESS == status)
