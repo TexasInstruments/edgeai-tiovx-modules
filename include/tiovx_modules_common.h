@@ -66,6 +66,7 @@
 #include <TI/tivx_task.h>
 #include <TI/tivx_target_kernel.h>
 #include <TI/tivx_img_proc.h>
+#include <edgeai_tiovx_target_kernels.h>
 
 #include <TI/j7_tidl.h>
 #include <TI/tivx_fileio.h>
