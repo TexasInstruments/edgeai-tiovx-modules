@@ -73,7 +73,7 @@
 #define APP_MODULES_TEST_VISS (1)
 #define APP_MODULES_TEST_PYRAMID (1)
 
-#if defined(SOC_J721E) || defined(SOC_J721S2)
+#if defined(SOC_J721E) || defined(SOC_J721S2) || defined(SOC_J784S4)
 #define APP_MODULES_TEST_COLOR_CONVERT (1)
 #define APP_MODULES_TEST_DL_PRE_PROC (1)
 #define APP_MODULES_TEST_DL_COLOR_BLEND (1)

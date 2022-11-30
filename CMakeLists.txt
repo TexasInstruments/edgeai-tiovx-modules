@@ -15,7 +15,7 @@ set(SRC_FILES
     src/tiovx_pyramid_module.c
     src/tiovx_utils.c)
 
-if ("${TARGET_SOC}" STREQUAL "J721E" OR "${TARGET_SOC}" STREQUAL "J721S2")
+if ("${TARGET_SOC}" STREQUAL "J721E" OR "${TARGET_SOC}" STREQUAL "J721S2" OR "${TARGET_SOC}" STREQUAL "J784S4")
     list(APPEND
          SRC_FILES
          src/tiovx_color_convert_module.c
