@@ -76,7 +76,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${TARGET_FS}/usr/include/processor_sdk/vision_apps/platform/${TARGET_SOC_LOWER}/linux
                     ${TARGET_FS}/usr/include/processor_sdk/ivision
                     ${TARGET_FS}/usr/include/processor_sdk/imaging
-                    ${TARGET_FS}/usr/include/processor_sdk/perception/include
+                    ${TARGET_FS}/usr/include/processor_sdk/ti-perception-toolkit/include
                     ${TARGET_FS}/usr/include/processor_sdk/imaging/algos/ae/include
                     ${TARGET_FS}/usr/include/processor_sdk/imaging/algos/awb/include
                     ${TARGET_FS}/usr/include/processor_sdk/imaging/algos/dcc/include
