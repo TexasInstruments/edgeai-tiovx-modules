@@ -101,6 +101,12 @@ extern "C" {
 
 #define TIOVX_MODULE_ERROR(f_, ...) printf("[ERROR] %d: %s: "f_, __LINE__, __func__, ##__VA_ARGS__)
 
+typedef enum {
+    VISS = 0,
+    AEWB,
+    LDC,
+} EDGEAI_NODES;
+
 typedef struct {
     vx_object_array arr[TIOVX_MODULES_MAX_BUFQ_DEPTH];
     tivx_raw_image image_handle[TIOVX_MODULES_MAX_BUFQ_DEPTH];
