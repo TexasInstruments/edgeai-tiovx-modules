@@ -36,7 +36,8 @@ build_lib(${PROJECT_NAME}  # Named argument: library name
 
 add_subdirectory(test)
 
-option(INSTALL_SRC  "Install src under /opt" OFF)
+option(INSTALL_SRC      "Install src under /opt" OFF)
+option(ENABLE_DCC_TOOL  "Enable DCC Tuning Tool Support" OFF)
 
 if (INSTALL_SRC)
     install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/
@@ -46,4 +47,8 @@ if (INSTALL_SRC)
             PATTERN     "*/bin*"   EXCLUDE
             PATTERN     "*/data*"  EXCLUDE
             PATTERN     "*/.git*"  EXCLUDE)
+endif()
+
+if(ENABLE_DCC_TOOL)
+add_definitions(-DENABLE_DCC_TOOL)
 endif()

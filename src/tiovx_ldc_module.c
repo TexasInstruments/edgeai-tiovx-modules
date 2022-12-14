@@ -496,6 +496,17 @@ vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj, Sens
         status = tiovx_ldc_module_create_outputs(context, obj);
     }
 
+#if defined(ENABLE_DCC_TOOL)
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = itt_register_object(context,
+                                     &(obj->node),
+                                     NULL,
+                                     NULL,
+                                     LDC);
+    }
+#endif
+    
     return (status);
 }
 
@@ -677,6 +688,10 @@ vx_status tiovx_ldc_module_create(vx_graph graph, TIOVXLDCModuleObj *obj, vx_obj
     {
         status = tiovx_ldc_module_add_write_output_node(graph, obj);
     }
+
+#if defined(ENABLE_DCC_TOOL)
+    status = itt_server_edge_ai_init();
+#endif
 
     return status;
 }
