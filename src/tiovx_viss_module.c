@@ -646,6 +646,17 @@ vx_status tiovx_viss_module_init(vx_context context, TIOVXVISSModuleObj *obj, Se
         status = tiovx_viss_module_create_outputs(context, obj);
     }
 
+#if defined(ENABLE_DCC_TOOL)
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = itt_register_object(context,
+                                     &(obj->node),
+                                     &(obj->input.image_handle[0]),
+                                     &(obj->output2.image_handle[0]),
+                                     VISS);
+    }
+#endif
+
     return (status);
 }
 
@@ -1003,6 +1014,10 @@ vx_status tiovx_viss_module_create(vx_graph graph, TIOVXVISSModuleObj *obj, vx_o
         status = tiovx_viss_module_add_write_output_node(graph, obj);
     }
 
+#if defined(ENABLE_DCC_TOOL)
+    status = itt_server_edge_ai_init();
+#endif
+    
     return status;
 }
 
