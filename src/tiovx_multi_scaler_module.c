@@ -94,6 +94,38 @@ static vx_status tiovx_multi_scaler_module_configure_scaler_coeffs(vx_context co
     return status;
 }
 
+static vx_status tiovx_multi_scaler_module_configure_crop_params(vx_context context, TIOVXMultiScalerModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+    vx_int32 out;
+
+    for (out = 0; out < obj->num_outputs; out++)
+    {
+        obj->crop_obj[out] = vxCreateUserDataObject(context,
+                "tivx_vpac_msc_crop_params_t",
+                sizeof(tivx_vpac_msc_crop_params_t),
+                NULL);
+
+        status = vxGetStatus((vx_reference)obj->crop_obj[out]);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = vxCopyUserDataObject(obj->crop_obj[out], 0,
+                    sizeof(tivx_vpac_msc_crop_params_t),
+                    obj->crop_params + out,
+                    VX_WRITE_ONLY,
+                    VX_MEMORY_TYPE_HOST);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            TIOVX_MODULE_ERROR("[MULTI-SCALER-MODULE] Creating user data object for crop params failed!, %d\n", out);
+        }
+    }
+
+    return status;
+}
+
 static vx_status tiovx_multi_scaler_module_create_scaler_input(vx_context context, TIOVXMultiScalerModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -301,6 +333,12 @@ vx_status tiovx_multi_scaler_module_init(vx_context context, TIOVXMultiScalerMod
         status = tiovx_multi_scaler_module_create_scaler_outputs(context, obj);
     }
 
+    if((vx_status)VX_SUCCESS == status)
+    {
+        TIOVX_MODULE_PRINTF("[MULTI-SCALER-MODULE] Configuring crop params!\n");
+        status = tiovx_multi_scaler_module_configure_crop_params(context, obj);
+    }
+
     return status;
 }
 
@@ -342,6 +380,7 @@ vx_status tiovx_multi_scaler_module_deinit(TIOVXMultiScalerModuleObj *obj)
                 status = vxReleaseObjectArray(&obj->output[out].arr[buf]);
             }
         }
+        status = vxReleaseUserDataObject(obj->crop_obj + out);
     }
 
     if(obj->en_multi_scalar_output == 1)
@@ -866,6 +905,42 @@ vx_status tiovx_multi_scaler_module_update_filter_coeffs(TIOVXMultiScalerModuleO
     if((vx_status)VX_SUCCESS != status)
     {
         TIOVX_MODULE_ERROR("[MULTI-SCALER-MODULE] Node send command failed!\n");
+    }
+
+    return status;
+}
+
+void tiovx_multi_scaler_module_crop_params_init(TIOVXMultiScalerModuleObj *obj)
+{
+    vx_int32 out;
+
+    for (out = 0; out < obj->num_outputs; out++)
+    {
+        obj->crop_params[out].crop_start_x = 0;
+        obj->crop_params[out].crop_start_y = 0;
+        obj->crop_params[out].crop_width = obj->input.width;
+        obj->crop_params[out].crop_height = obj->input.height;
+    }
+}
+
+vx_status tiovx_multi_scaler_module_update_crop_params(TIOVXMultiScalerModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+    vx_reference refs[TIOVX_MULTI_SCALER_MODULE_MAX_OUTPUTS];
+    vx_int32 out;
+
+    for (out = 0; out < obj->num_outputs; out++)
+    {
+        refs[out] = (vx_reference)obj->crop_obj[out];
+    }
+
+    status = tivxNodeSendCommand(obj->node, 0u,
+            TIVX_VPAC_MSC_CMD_SET_CROP_PARAMS,
+            refs, obj->num_outputs);
+
+    if((vx_status)VX_SUCCESS != status)
+    {
+        TIOVX_MODULE_ERROR("[MULTI-SCALER-MODULE] Node send command TIVX_VPAC_MSC_CMD_SET_CROP_PARAMS, failed!\n");
     }
 
     return status;

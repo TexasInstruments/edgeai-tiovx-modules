@@ -160,6 +160,13 @@ static vx_status app_init(AppObj *obj)
             scalerObj->output[out].height = INPUT_HEIGHT >> (out + 1);
         }
 
+        tiovx_multi_scaler_module_crop_params_init(scalerObj);
+
+        scalerObj->crop_params[0].crop_start_x = 0;
+        scalerObj->crop_params[0].crop_start_y = 0;
+        scalerObj->crop_params[0].crop_width = 320;
+        scalerObj->crop_params[0].crop_height = 240;
+
         /* Initialize modules */
         status = tiovx_multi_scaler_module_init(obj->context, scalerObj);
         APP_PRINTF("Scaler Init Done! \n");
@@ -252,6 +259,11 @@ static vx_status app_verify_graph(AppObj *obj)
     if((vx_status)VX_SUCCESS == status)
     {
         status = tiovx_multi_scaler_module_update_filter_coeffs(&obj->scalerObj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_multi_scaler_module_update_crop_params(&obj->scalerObj);
     }
 
     if((vx_status)VX_SUCCESS == status)
