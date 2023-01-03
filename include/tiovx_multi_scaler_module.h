@@ -101,6 +101,12 @@ typedef struct {
     /*! Filter coefficients data object */
     vx_user_data_object coeff_obj;
 
+    /*! Crop params data objects */
+    vx_user_data_object crop_obj[TIOVX_MULTI_SCALER_MODULE_MAX_OUTPUTS];
+
+    /*! Crop params */
+    tivx_vpac_msc_crop_params_t crop_params[TIOVX_MULTI_SCALER_MODULE_MAX_OUTPUTS];
+
     /*! Number of channels to process in a batch */
     vx_int32 num_channels;
 
@@ -230,6 +236,24 @@ void tiovx_multi_scaler_module_set_coeff(tivx_vpac_msc_coefficients_t *coeff,  u
  *
  */
 vx_status tiovx_multi_scaler_module_update_filter_coeffs(TIOVXMultiScalerModuleObj *obj);
+
+/** \brief TIOVX Multi-scaler module initialize crop params
+ *
+ * This function will initialize the crop params
+ *
+ * \param [out] obj Handle to TIOVX Multi-scaler module object
+ *
+ */
+void tiovx_multi_scaler_module_crop_params_init(TIOVXMultiScalerModuleObj *obj);
+
+/** \brief TIOVX Multi-scaler module update crop params
+ *
+ * This function will set the crop params
+ *
+ * \param [out] obj Handle to TIOVX Multi-scaler module object
+ *
+ */
+vx_status tiovx_multi_scaler_module_update_crop_params(TIOVXMultiScalerModuleObj *obj);
 
 /* @} */
 
