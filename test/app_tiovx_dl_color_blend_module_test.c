@@ -137,6 +137,7 @@ static vx_status app_init(AppObj *obj)
     {
         tivxHwaLoadKernels(obj->context);
         tivxImgProcLoadKernels(obj->context);
+        tivxEdgeaiImgProcLoadKernels(obj->context);
     }
 
     if(status == VX_SUCCESS)
@@ -178,6 +179,8 @@ static void app_deinit(AppObj *obj)
 {
     tiovx_dl_color_blend_module_deinit(&obj->dlColorBlendObj);
 
+    tivxEdgeaiImgProcUnLoadKernels(obj->context);
+
     tivxImgProcUnLoadKernels(obj->context);
 
     tivxHwaUnLoadKernels(obj->context);
@@ -204,7 +207,7 @@ static vx_status app_create_graph(AppObj *obj)
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = tiovx_dl_color_blend_module_create(obj->graph, &obj->dlColorBlendObj, NULL, NULL, TIVX_TARGET_DSP1);
+        status = tiovx_dl_color_blend_module_create(obj->graph, &obj->dlColorBlendObj, NULL, NULL, TIVX_TARGET_A72_0);
     }
 
     graph_parameter_index = 0;

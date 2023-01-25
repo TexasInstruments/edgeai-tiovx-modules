@@ -71,7 +71,7 @@ extern "C" {
 typedef struct {
     vx_node node;
     vx_user_data_object config;
-    tivxDLPreProcParams params;
+    tivxDLPreProcArmv8Params params;
 
     ImgObj input;
     TensorObj output;

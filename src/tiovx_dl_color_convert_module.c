@@ -324,7 +324,7 @@ vx_status tiovx_dl_color_convert_module_create(vx_graph graph, TIOVXDLColorConve
         output = NULL;
     }
 
-    obj->node = tivxDLColorConvertNode(graph, input, output);
+    obj->node = tivxDLColorConvertArmv8Node(graph, input, output);
     status = vxGetStatus((vx_reference)obj->node);
 
     if((vx_status)VX_SUCCESS == status)
