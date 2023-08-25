@@ -1,3 +1,5 @@
+This repo is moved to https://git.ti.com/cgit/edgeai/edgeai-tiovx-modules/
+
 # edgeai-tiovx-modules
 Repository to host TI's OpenVx modules used in EdgeAI SDK.
 
